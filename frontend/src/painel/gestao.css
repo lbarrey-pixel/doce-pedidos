@@ -1,0 +1,65 @@
+/* Produção do dia, saída com entregador, separação da Encomenda e observação do pedido. */
+
+.producao__alerta {
+  border-left: 4px solid var(--destaque);
+  padding-left: 0.75rem;
+}
+
+.producao__dia {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.producao__dia .secao__titulo {
+  margin: 0;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.producao__dia .botao {
+  padding-inline: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.producao__alerta--pix {
+  border-left-color: var(--caramelo);
+}
+
+.saida {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.separacao {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.separacao__item {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.separacao__conta {
+  font-weight: 600;
+}
+
+.separacao__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Observação escrita pelo cliente no pedido. */
+.pedido__obs {
+  padding: 0.4rem 0.6rem;
+  font-weight: 600;
+  background: var(--fundo-alt);
+  border-radius: 8px;
+}

@@ -1,0 +1,61 @@
+// Respostas da loja no formato da API.
+export const CARDAPIO = {
+  loja_aberta: true,
+  abre_as: '2026-11-03T12:00:00-03:00',
+  primeira_encomenda: '2026-11-03T12:00:00-03:00',
+  primeiro_agendamento: '2026-11-02T23:00:00-03:00',
+  tempo_preparo_min: 30,
+  pedido_minimo_centavos: 800,
+  desconto_app_percentual: 0,
+  categorias: [
+    {
+      nome: 'Bolos de pote',
+      variantes: [
+        {
+          id: 'doce-ind',
+          produto: 'Bolo de Pote Red Velvet',
+          tamanho: 'Individual',
+          descricao: 'Bolo vermelho aveludado com creme.',
+          ingredientes: 'farinha, ovos, cream cheese',
+          porcoes: '1 pessoa',
+          peso_g: 130,
+          foto: 'fotos/bolo-pote.jpg',
+          preco_centavos: 1990,
+          pronta: 5,
+          estado_disponibilidade: 'pronta_entrega',
+        },
+        {
+          id: 'lc-grande',
+          produto: 'Torta de Limão',
+          tamanho: 'Inteira',
+          descricao: 'O clássico.',
+          ingredientes: '',
+          porcoes: '10 pessoas',
+          peso_g: 1100,
+          foto: '',
+          preco_centavos: 14590,
+          pronta: 0,
+          estado_disponibilidade: 'encomenda',
+        },
+      ],
+    },
+    {
+      nome: 'Cookies e brownies',
+      variantes: [
+        {
+          id: 'calda',
+          produto: 'Palha Italiana',
+          tamanho: 'Unidade',
+          descricao: '',
+          ingredientes: '',
+          porcoes: '',
+          peso_g: 30,
+          foto: '',
+          preco_centavos: 490,
+          pronta: 9,
+          estado_disponibilidade: 'pronta_entrega',
+        },
+      ],
+    },
+  ],
+};

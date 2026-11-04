@@ -1,0 +1,27 @@
+/* Identidade visual da Doce Ateliê, da paleta caramelo e creme.
+   Contraste WCAG sobre --fundo: texto 8,5:1; destaque 6,2:1; branco sobre destaque 7,2:1. */
+:root {
+  --fundo: #f5eedc;
+  --fundo-alt: #ebe2c8;
+  --texto: #6b3415;
+  --destaque: #953b1a;
+  --sobre-destaque: #ffffff;
+  --caramelo: #a65321; /* só texto grande ou ícone (4,7:1) */
+  --caramelo-claro: #b37d52; /* decorativo, nunca texto */
+  --dourado: #dd9f42; /* decorativo */
+  --fonte-titulo: 'Fraunces Variable', Georgia, serif; /* proposta; escolha final do cliente */
+  --fonte-texto: 'Figtree Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: var(--fonte-texto);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--fonte-titulo);
+}

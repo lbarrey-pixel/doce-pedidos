@@ -1,0 +1,314 @@
+/* Estoque por variante. Cartões no creme; ações em chips. */
+
+.obra__abertura--curta {
+  margin-bottom: 2rem;
+}
+
+.busca {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 0.5rem;
+}
+
+.estoque {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding: 1rem 1.1rem;
+  background: var(--creme-claro);
+  border: 1.5px solid var(--linha);
+  border-radius: 16px;
+}
+
+.estoque__cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.estoque__nome {
+  margin: 0;
+  font-family: 'Figtree Variable', system-ui, sans-serif;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.estoque__lancar {
+  flex: none;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  font-size: 0.98rem;
+}
+
+.estoque__saldos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.saldo {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--fundo);
+  border-radius: 999px;
+}
+
+.saldo dt {
+  font-size: 0.875rem;
+}
+
+.saldo dd {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.saldo--pronta {
+  color: var(--creme-claro);
+  background: var(--destaque);
+}
+
+.saldo--descongelando {
+  background: rgb(221 159 66 / 0.35);
+}
+
+.estoque__nota {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.lancar,
+.venda {
+  display: grid;
+  gap: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--linha);
+}
+
+.venda {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.lancar__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.lancar__acoes legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+}
+
+.chip {
+  position: relative;
+}
+
+.chip input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.chip span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--destaque);
+  border: 1.5px solid var(--destaque);
+  border-radius: 999px;
+}
+
+.chip input:checked + span {
+  color: var(--creme-claro);
+  background: var(--destaque);
+}
+
+.chip input:focus-visible + span {
+  outline: 3px solid var(--destaque);
+  outline-offset: 3px;
+}
+
+.quantidade {
+  display: inline-grid;
+  grid-template-columns: 52px 72px 52px;
+  align-items: center;
+  justify-self: start;
+  overflow: hidden;
+  border: 1.5px solid var(--borda-campo);
+  border-radius: 999px;
+}
+
+.quantidade__botao {
+  height: 52px;
+  font-size: 1.5rem;
+  color: var(--destaque);
+  background: #fff;
+  border: 0;
+  cursor: pointer;
+}
+
+.quantidade__botao:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.quantidade__numero {
+  width: 100%;
+  height: 52px;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--texto);
+  background: #fff;
+  border: 0;
+  border-inline: 1px solid var(--linha);
+}
+
+.lancar__ok {
+  min-height: 1.25rem;
+  margin: 0;
+  font-weight: 650;
+}
+
+.venda__itens,
+.venda__opcoes {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.venda__item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.6rem 0.9rem;
+  padding: 0.85rem 1rem;
+  background: var(--creme-claro);
+  border: 1.5px solid var(--linha);
+  border-radius: 14px;
+}
+
+.venda__nome {
+  display: grid;
+  gap: 0.15rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.venda__nome small {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.venda__tirar {
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--destaque);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.venda__cardapio {
+  margin-top: 2.5rem;
+}
+
+.venda__opcao {
+  display: grid;
+  width: 100%;
+  gap: 0.2rem;
+  min-height: 56px;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  text-align: left;
+  color: var(--texto);
+  background: var(--creme-claro);
+  border: 1.5px solid var(--linha);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.venda__opcao:hover:not(:disabled) {
+  border-color: var(--destaque);
+}
+
+.venda__opcao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.venda__info {
+  font-size: 0.9rem;
+}
+
+.atalhos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 0.5rem 0 1.75rem;
+}
+
+.atalhos .botao:first-child {
+  grid-column: 1 / -1;
+}
+
+.atalhos .botao {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 0 0.75rem;
+  text-decoration: none;
+}
+
+.pedido--aguardando_pagamento {
+  border-left-color: var(--dourado);
+}
+
+.pedido--pago,
+.pedido--em_preparo {
+  border-left-color: var(--destaque);
+}
+
+.pedido--entregue,
+.pedido--cancelado {
+  opacity: 0.7;
+}
+
+.pedido__linha {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.pedido__itens {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-weight: 600;
+}
+
+.pedido__acoes,
+.pedido__outro {
+  display: grid;
+  gap: 0.6rem;
+}

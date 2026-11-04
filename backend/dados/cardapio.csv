@@ -1,0 +1,16 @@
+categoria,produto,tamanho,peso_g,porcoes,preco,descricao,ingredientes,observacao
+Brigadeiros,Brigadeiro de Pistache,Unidade,25,1,6.50,"Brigadeiro cremoso de pistache torrado, enrolado à mão e coberto com pistache picado.","Leite condensado, creme de leite, pasta de pistache, manteiga e pistache torrado.",
+Brigadeiros,Brigadeiro de Pistache,Caixa com 12,300,12,69.00,"Doze brigadeiros de pistache em caixa para presente.","Leite condensado, creme de leite, pasta de pistache, manteiga e pistache torrado.",
+Brigadeiros,Brigadeiro Tradicional,Caixa com 12,300,12,54.00,"O clássico de chocolate meio amargo, em caixa com doze unidades.","Leite condensado, creme de leite, chocolate meio amargo, manteiga e granulado belga.",
+Bolos de pote,Bolo de Pote de Cenoura com Brigadeiro,Individual,220,1,18.90,"Camadas de bolo de cenoura fofinho com brigadeiro de chocolate cremoso.","Cenoura, ovos, farinha de trigo, açúcar, óleo, leite condensado e chocolate meio amargo.",
+Bolos de pote,Bolo de Pote Red Velvet,Individual,220,1,21.90,"Bolo vermelho aveludado intercalado com creme de cream cheese.","Farinha de trigo, ovos, açúcar, manteiga, cacau, cream cheese e corante natural de beterraba.",
+Tortas,Torta de Limão,Fatia,150,1,16.90,"Base crocante de biscoito, creme azedinho de limão siciliano e merengue tostado.","Biscoito, manteiga, leite condensado, limão siciliano, ovos e açúcar.",
+Tortas,Torta de Limão,Inteira,1200,10,129.00,"A torta inteira, para dividir em até dez fatias.","Biscoito, manteiga, leite condensado, limão siciliano, ovos e açúcar.",
+Tortas,Cheesecake de Frutas Vermelhas,Fatia,160,1,19.90,"Cheesecake assado com calda de frutas vermelhas feita na casa.","Cream cheese, biscoito, manteiga, ovos, açúcar, morango, amora e framboesa.",
+Cookies e brownies,Cookie de Chocolate Meio Amargo,Unidade,90,1,12.00,"Cookie grande, dourado por fora e macio por dentro, com gotas de chocolate meio amargo.","Farinha de trigo, manteiga, açúcar mascavo, ovos e chocolate meio amargo.",
+Cookies e brownies,Brownie de Nozes,Unidade,110,1,14.50,"Brownie denso de chocolate com nozes tostadas.","Chocolate meio amargo, manteiga, ovos, açúcar, farinha de trigo e nozes.",
+Cookies e brownies,Palha Italiana,Unidade,60,1,4.90,"Brigadeiro com pedaços de biscoito, cortado em quadradinhos e polvilhado com açúcar.","Leite condensado, chocolate meio amargo, manteiga e biscoito maisena.",Edição limitada de fim de ano.
+Bebidas,Água com Gás,Garrafa 500 ml,500,1,5.00,"Água mineral com gás gelada.","Água mineral gaseificada.",
+Bebidas,Refrigerante de Guaraná,Lata 350 ml,350,1,8.90,"Lata gelada de guaraná.","Refrigerante de guaraná.",
+Embalagens,Sacola Presente,Unidade,,,4.00,"Sacola de papel kraft com laço, para levar de presente.","Papel kraft e fita de cetim.",
+Embalagens,Cartão com Mensagem,Unidade,,,3.00,"Cartão escrito à mão com a mensagem que você quiser.","Papel reciclado.",

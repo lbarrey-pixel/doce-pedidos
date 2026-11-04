@@ -1,0 +1,41 @@
+# Backend + Postgres 16 para rodar tudo localmente:
+#   docker compose up --build
+# A API sobe em http://localhost:8000 já com migrations e dados de demonstração.
+# O frontend roda fora do compose (cd frontend && npm run dev), veja o README.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: doce
+    ports:
+      - "5432:5432"
+    volumes:
+      - dados-do-banco:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d doce"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Dono do schema: só as migrations usam. A API roda como doce_api.
+      MIGRATIONS_DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/doce
+      DOCE_API_SENHA: doce_api_local
+      DATABASE_URL: postgresql+psycopg://doce_api:doce_api_local@db:5432/doce
+      # Sem Supabase: JWT HS256 com este segredo (token: scripts/token_dev.py).
+      JWT_SECRET: segredo-local-so-para-desenvolvimento-32b
+      ROTEADOR: fake
+      CORS_ORIGENS: http://localhost:5173
+      DOCE_SEED: "1"
+    ports:
+      - "8000:8000"
+
+volumes:
+  dados-do-banco:

@@ -1,0 +1,461 @@
+/* Loja do app. Assinatura: o pratinho — foto redonda com aro de caramelo, vista de cima.
+   O resto é quieto: linhas, abas e uma barra de total. */
+
+.loja {
+  min-height: 100dvh;
+  padding-bottom: 6rem;
+  background: var(--fundo);
+  color: var(--texto);
+}
+
+.loja__topo {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: calc(0.9rem + env(safe-area-inset-top)) 1rem 0.9rem;
+  color: var(--creme-claro);
+  background: var(--destaque);
+}
+
+.loja__topo .calda--horizontal {
+  height: clamp(26px, 5vw, 44px);
+}
+
+.loja__marca img {
+  display: block;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+.loja__titulo {
+  margin: 0;
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.loja__estado {
+  margin: 0.15rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.92;
+}
+
+.loja__estado--aberto::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 0.4rem;
+  vertical-align: 1px;
+  background: var(--dourado);
+  border-radius: 50%;
+}
+
+.loja__corpo {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2.25rem 1rem 1rem;
+}
+
+.abas {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: 0.4rem;
+  margin: 0 -1rem 1rem;
+  padding: 0.6rem 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--fundo);
+  border-bottom: 1px solid var(--linha);
+}
+
+.abas__item {
+  flex: none;
+  padding: 0.55rem 0.95rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--texto);
+  text-decoration: none;
+  border-radius: 999px;
+}
+
+.abas__item:hover,
+.abas__item:focus-visible {
+  background: var(--fundo-alt);
+}
+
+.categoria {
+  scroll-margin-top: 4rem;
+  margin-bottom: 2rem;
+}
+
+.categoria__nome {
+  margin: 0 0 0.25rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.itens {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1rem 0;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--linha);
+  cursor: pointer;
+}
+
+.item__texto {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.item__nome {
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.item__tamanho {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.item__descricao {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  opacity: 0.85;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.item__preco {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+  font-weight: 700;
+}
+
+.item__selo {
+  padding: 0.1rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgb(221 159 66 / 0.35);
+  border-radius: 999px;
+}
+
+/* O pratinho: aro de caramelo em volta da foto. */
+.prato {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 4px var(--creme-claro),
+    0 0 0 7px var(--caramelo-claro),
+    0 12px 22px -12px rgb(74 30 8 / 0.6);
+}
+
+.prato--vazio {
+  display: grid;
+  place-items: center;
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-size: 2.2rem;
+  color: var(--creme-claro);
+  background: radial-gradient(circle at 40% 35%, var(--dourado), var(--caramelo) 70%);
+}
+
+.prato--grande {
+  display: block;
+  width: min(62vw, 240px);
+  height: min(62vw, 240px);
+  margin: 0.5rem auto 1.25rem;
+}
+
+.folha__fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(60 25 6 / 0.45);
+}
+
+.folha {
+  position: relative;
+  width: 100%;
+  max-width: 34rem;
+  max-height: 92dvh;
+  margin: 0;
+  padding: 1.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  color: var(--texto);
+  background: var(--fundo);
+  border: 0;
+  border-radius: 24px 24px 0 0;
+  animation: folha-sobe 0.22s ease-out;
+}
+
+@keyframes folha-sobe {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+.folha__fechar {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 44px;
+  height: 44px;
+  font-size: 1.6rem;
+  color: var(--texto);
+  background: var(--fundo-alt);
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.folha__nome {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+
+.folha__tamanho,
+.folha__ingredientes {
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  opacity: 0.85;
+}
+
+.folha__texto {
+  margin: 0.85rem 0 0;
+  line-height: 1.55;
+}
+
+.folha__aviso {
+  margin: 0.85rem 0 0;
+  padding: 0.6rem 0.8rem;
+  background: rgb(221 159 66 / 0.3);
+  border-radius: 10px;
+}
+
+.folha__acao {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.folha__adicionar {
+  padding: 0 1rem;
+  white-space: nowrap;
+}
+
+.barra {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, var(--fundo) 30%);
+}
+
+/* Botão "Falar com a loja no WhatsApp": acima da barra do pedido quando ela aparece. */
+.falar {
+  position: fixed;
+  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  z-index: 6;
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 1.1rem;
+  font-weight: 700;
+  color: var(--sobre-destaque);
+  text-decoration: none;
+  background: var(--destaque);
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.18);
+}
+
+.falar--acima {
+  bottom: calc(5.25rem + env(safe-area-inset-bottom));
+}
+
+.falar:focus-visible {
+  outline: 3px solid var(--dourado);
+  outline-offset: 2px;
+}
+
+.barra__botao {
+  justify-content: space-between;
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.checkout,
+.pagamento {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.checkout__titulo {
+  margin: 0;
+  font-size: clamp(2rem, 1.5rem + 2vw, 2.6rem);
+  line-height: 1.05;
+}
+
+.checkout__itens {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checkout__aviso,
+.checkout__cotacao {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  background: rgb(221 159 66 / 0.3);
+  border-radius: 10px;
+}
+
+.checkout__cotacao {
+  background: var(--creme-claro);
+  border: 1px solid var(--linha);
+}
+
+.checkout__endereco {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.checkout__complemento,
+.checkout__endereco .botao,
+.checkout__cotacao {
+  grid-column: 1 / -1;
+}
+
+.checkout__whatsapp {
+  font-weight: 700;
+  color: var(--destaque);
+}
+
+.resumo {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 1rem;
+  background: var(--creme-claro);
+  border-radius: 16px;
+}
+
+.resumo div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.resumo dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.resumo__total {
+  padding-top: 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 750;
+  border-top: 1px solid var(--linha);
+}
+
+.pagamento__total {
+  margin: 0;
+  font-family: 'Fraunces Variable', Georgia, serif;
+  font-size: 2.4rem;
+  font-weight: 600;
+}
+
+.pagamento__codigo {
+  display: block;
+  padding: 0.85rem;
+  font-size: 0.85rem;
+  word-break: break-all;
+  background: var(--creme-claro);
+  border: 1px dashed var(--caramelo-claro);
+  border-radius: 12px;
+}
+
+.pagamento__qr {
+  justify-self: center;
+  width: min(60vw, 220px);
+  padding: 0.5rem;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.pagamento__estado {
+  margin: 0;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 650;
+  background: var(--creme-claro);
+  border-left: 6px solid var(--destaque);
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .folha {
+    animation: none;
+  }
+}
+
+/* Rua do CEP antes do número. */
+.checkout__rua {
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  background: var(--creme-claro);
+  border-radius: 12px;
+}
+
+.checkout__rua span {
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.checkout__observacao {
+  min-height: 3.5rem;
+  resize: vertical;
+}
