@@ -27,9 +27,9 @@ def test_cotacao_e_recusas_de_endereco(mundo):
     loja, _ = mundo
     r = loja.post("/api/v1/loja/entrega/cotacao", json={"cep": "12345-678", "numero": "220"})
     assert r.json()["taxa_entrega_centavos"] == 1400 and r.json()["distancia_m"] == 5000
-    r = loja.post("/api/v1/loja/entrega/cotacao", json={"cep": "13000-013", "numero": "1"})
+    r = loja.post("/api/v1/loja/entrega/cotacao", json={"cep": "99999-999", "numero": "1"})
     assert r.status_code == 422 and r.json()["erro"] == "sob_consulta"
-    assert r.json()["whatsapp_url"].startswith("https://wa.me/5511988887777")
+    assert r.json()["whatsapp_url"].startswith("https://wa.me/5511900000002")
     r = loja.post("/api/v1/loja/entrega/cotacao", json={"cep": "12345-678", "numero": "sem-numero"})
     assert r.json()["erro"] == "endereco_nao_encontrado" and "whatsapp_url" in r.json()
 
@@ -47,7 +47,7 @@ def test_pedido_pix_e_confirmacao(mundo, engine):
         5380,
     )
     assert p["estado"] == "aguardando_pagamento" and "540553.80" in p["pix"]["copia_e_cola"]
-    assert p["whatsapp_url"].startswith("https://wa.me/5511988887777?text=")
+    assert p["whatsapp_url"].startswith("https://wa.me/5511900000002?text=")
     assert (saldo(painel, v)["pronta"], saldo(painel, v)["separada"]) == (3, 2)
     acompanhar = loja.get(f"/api/v1/loja/pedidos/{p['id']}").json()
     assert acompanhar["pix"]["copia_e_cola"] == p["pix"]["copia_e_cola"]  # recarregar a página
@@ -63,7 +63,7 @@ def test_pedido_pix_e_confirmacao(mundo, engine):
     assert depois["estado"] == "pago" and depois["pix"] is None
 
 
-def test_valor_diferente_recusado_ou_aceito_com_diferenca(mundo, engine):
+def test_valor_diferente_do_pedido_nao_confirma(mundo, engine):
     loja, painel = mundo
     v = vid(engine)
     produzir(painel, v, 5)
@@ -72,8 +72,11 @@ def test_valor_diferente_recusado_ou_aceito_com_diferenca(mundo, engine):
     r = painel.post(url, json={"valor_recebido_centavos": 5300})
     assert r.status_code == 422 and r.json()["erro"] == "valor_divergente"
     assert r.json()["esperado_centavos"] == 5380
+    # a opção de aceitar a diferença deixou de existir (ADR 0007): o campo é ignorado
     r = painel.post(url, json={"valor_recebido_centavos": 5300, "aceitar_diferenca": True})
-    assert r.json()["estado"] == "pago" and r.json()["diferenca_pagamento_centavos"] == -80
+    assert r.status_code == 422 and r.json()["erro"] == "valor_divergente"
+    r = painel.post(url, json={"valor_recebido_centavos": 5380})
+    assert r.json()["estado"] == "pago" and r.json()["diferenca_pagamento_centavos"] == 0
 
 
 def test_expira_em_30_min_e_confirmacao_tardia(mundo, engine, relogio):
@@ -146,12 +149,12 @@ def test_reconhece_pelo_telefone_e_primeiro_nome(mundo, engine):
     produzir(painel, v, 3)
     pedir(loja, v, qtd=1)
     url = "/api/v1/loja/cliente/reconhecer"
-    r = loja.post(url, json={"telefone": "11 99999 1234", "nome": "ana"}).json()
+    r = loja.post(url, json={"telefone": "11 90000 0001", "nome": "ana"}).json()
     assert r["endereco_mascarado"] == "R. da••• Acácias, 2••, Jardim Azul"
     # a taxa do endereço anterior vem junto, sem revelar o endereço
     assert r["taxa_entrega_centavos"] == 1400
     assert "220" not in str(r) and "das Acácias" not in str(r) and "lat" not in r
-    assert loja.post(url, json={"telefone": "11999991234", "nome": "Carlos"}).json() == {}
+    assert loja.post(url, json={"telefone": "11900000001", "nome": "Carlos"}).json() == {}
     r = pedir(loja, v, qtd=1, endereco=None, usar_endereco_anterior=True)
     assert r.status_code == 201 and r.json()["taxa_entrega_centavos"] == 1400
 
@@ -237,7 +240,7 @@ def test_cep_mostra_a_rua_antes_do_numero(mundo):
         "cidade": "Campinas",
         "uf": "SP",
     }
-    r = loja.get("/api/v1/loja/cep/99999-999")
+    r = loja.get("/api/v1/loja/cep/88888-888")
     assert r.status_code == 422 and r.json()["erro"] == "cep_nao_encontrado"
 
 

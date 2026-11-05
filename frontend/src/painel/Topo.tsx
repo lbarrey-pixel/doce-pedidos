@@ -7,6 +7,9 @@ const ABAS = [
   [ROTAS.pedidos, 'Pedidos'],
   [ROTAS.producao, 'Produção'],
   [ROTAS.estoque, 'Estoque'],
+  [ROTAS.vendas, 'Vendas'],
+  [ROTAS.resumos, 'Resumos'],
+  [ROTAS.configuracao, 'Configuração'],
 ] as const;
 
 async function sair() {

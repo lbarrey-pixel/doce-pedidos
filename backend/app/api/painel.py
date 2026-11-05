@@ -58,7 +58,9 @@ def _existe(c: Connection, variante_id: str) -> bool:
 @router.get("/estoque")
 def estoque(request: Request, _: Operador = OperadorAtual) -> dict:
     with request.app.state.engine.begin() as c:
-        pendentes = repo.atualizar_descongelamentos(c, request.app.state.relogio())
+        agora = request.app.state.relogio()
+        pedidos.liberar_expirados(c, agora)  # link de venda vencido já devolveu o estoque
+        pendentes = repo.atualizar_descongelamentos(c, agora)
         linhas = c.execute(
             text(
                 """
@@ -107,6 +109,7 @@ def movimentar(novo: NovoMovimento, request: Request, operador: Operador = Opera
     with request.app.state.engine.begin() as c:
         if not _existe(c, novo.variante_id):
             raise ErroDeNegocio("variante_desconhecida", "Item fora do cardápio.")
+        pedidos.liberar_expirados(c, agora)
         repo.atualizar_descongelamentos(c, agora)
         try:
             m = Movimento(

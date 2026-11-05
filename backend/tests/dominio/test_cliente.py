@@ -12,8 +12,8 @@ IPIRANGA = {"logradouro": "Av. das Palmeiras", "numero": "1000", "bairro": "Bair
 
 
 def test_chave_telefone_so_digitos_e_primeiro_nome_normalizado():
-    assert chave("(11) 99999-1234", "  Ána Paula Souza ") == ("11999991234", "ana")
-    assert chave("11 99999 1234", "ana") == chave("(11) 99999-1234", "ANA")
+    assert chave("(11) 90000-0001", "  Ána Paula Souza ") == ("11900000001", "ana")
+    assert chave("11 90000 0001", "ana") == chave("(11) 90000-0001", "ANA")
 
 
 def test_mascara_o_endereco():
@@ -23,9 +23,9 @@ def test_mascara_o_endereco():
 
 def test_reconhece_pelo_telefone_e_primeiro_nome():
     anteriores = [
-        Anterior("11999991234", "Ana Paula Souza", ACACIAS, T),
-        Anterior("11999991234", "Carlos", IPIRANGA, T + timedelta(days=3)),
+        Anterior("11900000001", "Ana Paula Souza", ACACIAS, T),
+        Anterior("11900000001", "Carlos", IPIRANGA, T + timedelta(days=3)),
     ]
-    assert endereco_reconhecido(anteriores, "(11) 99999-1234", "ana") == ACACIAS
-    assert endereco_reconhecido(anteriores, "11999991234", "Carla") is None
-    assert endereco_reconhecido(anteriores, "11988887777", "Ana") is None
+    assert endereco_reconhecido(anteriores, "(11) 90000-0001", "ana") == ACACIAS
+    assert endereco_reconhecido(anteriores, "11900000001", "Carla") is None
+    assert endereco_reconhecido(anteriores, "11900000003", "Ana") is None

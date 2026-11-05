@@ -16,7 +16,7 @@ const ENCOMENDA = {
   estado: 'pago',
   recebimento: 'entrega',
   entrega_em: '2026-11-03T15:00:00-03:00',
-  cliente: { nome: 'Ana Paula', telefone: '11999991234' },
+  cliente: { nome: 'Ana Paula', telefone: '11900000001' },
   endereco: { logradouro: 'R. das Acácias', numero: '220', bairro: 'Jardim Azul' },
   itens: [{ nome: 'Torta de Limão · Inteira', quantidade: 1 }],
   total_centavos: 15590,

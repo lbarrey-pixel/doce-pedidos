@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { chamarApi } from '../comum/api';
 import { formatarCentavos } from '../comum/dinheiro';
-import { irPara, useCaminho } from '../comum/rotas';
+import { abrirPagamento, irPara, useCaminho } from '../comum/rotas';
 import { Marca } from '../comum/Marca';
 import { Calda } from '../painel/Calda';
 import { CardapioLoja } from './CardapioLoja';
 import { guardarPedido, useCarrinho } from './carrinho';
 import { Checkout } from './Checkout';
 import { Pagamento } from './Pagamento';
+import { Simulador } from './Simulador';
 import type { Cardapio } from './tipos';
 
 const FUSO = { timeZone: 'America/Sao_Paulo' } as const;
@@ -26,7 +27,9 @@ export function Loja() {
   }, [caminho]);
 
   const pedidoId = caminho.match(/^\/pedido\/([\w-]+)$/)?.[1];
-  const tela = pedidoId ? 'pagamento' : caminho === '/carrinho' ? 'carrinho' : 'cardapio';
+  const simuladoId = caminho.match(/^\/simulador\/([\w-]+)$/)?.[1];
+  const tela =
+    pedidoId || simuladoId ? 'pagamento' : caminho === '/carrinho' ? 'carrinho' : 'cardapio';
   const precoPorId = useMemo(
     () =>
       new Map(
@@ -99,11 +102,14 @@ export function Loja() {
                 guardarPedido(p.id, p);
                 esvaziar();
                 irPara(`/pedido/${p.id}`);
+                // Com link do gateway o cliente já segue para pagar; "Pagar" fica na página.
+                if (p.pagamento?.tipo === 'link') abrirPagamento(p.pagamento.url);
               }}
             />
           </>
         )}
         {pedidoId && <Pagamento id={pedidoId} />}
+        {simuladoId && <Simulador id={simuladoId} />}
       </main>
 
       {cardapio?.whatsapp_url && tela !== 'pagamento' && (

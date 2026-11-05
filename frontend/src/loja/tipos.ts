@@ -27,6 +27,9 @@ export interface Cardapio {
   categorias: { nome: string; variantes: VarianteLoja[] }[];
 }
 
+// Link do gateway de checkout, ou Pix copia e cola quando não há gateway ou ele está fora do ar.
+export type PagamentoDoPedido = { tipo: 'link'; url: string } | { tipo: 'pix_manual' };
+
 export interface PedidoCriado {
   id: string;
   numero: number;
@@ -40,6 +43,9 @@ export interface PedidoCriado {
   entrega_a_partir_de: string | null;
   expira_em?: string;
   pix: { copia_e_cola: string } | null;
+  pagamento?: PagamentoDoPedido | null;
+  forma_pagamento?: 'pix' | 'cartao' | 'pix_manual' | null;
+  a_estornar?: boolean; // pagou e o pedido está cancelado: a loja faz o estorno
   whatsapp_url?: string | null;
 }
 

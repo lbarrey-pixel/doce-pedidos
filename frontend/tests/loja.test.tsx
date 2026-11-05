@@ -28,7 +28,7 @@ const PEDIDO = {
   entrega_a_partir_de: '2026-11-02T18:10:00+00:00',
   expira_em: '2026-11-02T18:30:00+00:00',
   pix: { copia_e_cola: '00020126PIXDE39,80' },
-  whatsapp_url: 'https://wa.me/5511988887777?text=x',
+  whatsapp_url: 'https://wa.me/5511900000002?text=x',
 };
 
 async function adicionarDoce(vezes = 1) {
@@ -67,10 +67,10 @@ it('fecha um pedido de retirada e mostra o Pix', async () => {
   await userEvent.click(screen.getByRole('button', { name: /Ver pedido/ }));
   await userEvent.click(screen.getByRole('radio', { name: /Retirar na loja/ }));
   await userEvent.type(screen.getByLabelText('Seu nome'), 'Ana Paula');
-  await userEvent.type(screen.getByLabelText('WhatsApp'), '11999991234');
+  await userEvent.type(screen.getByLabelText('WhatsApp'), '11900000001');
   await userEvent.click(screen.getByRole('button', { name: /Fazer pedido/ }));
   expect(chamadas.find((c) => c.url.endsWith('/loja/pedidos'))?.corpo).toEqual({
-    cliente: { nome: 'Ana Paula', telefone: '11999991234' },
+    cliente: { nome: 'Ana Paula', telefone: '11900000001' },
     recebimento: 'retirada',
     endereco: null,
     usar_endereco_anterior: false,
@@ -101,7 +101,7 @@ it('reconhece quem já pediu e oferece o endereço mascarado', async () => {
   await adicionarDoce();
   await userEvent.click(screen.getByRole('button', { name: /Ver pedido/ }));
   await userEvent.type(screen.getByLabelText('Seu nome'), 'Ana');
-  await userEvent.type(screen.getByLabelText('WhatsApp'), '11999991234');
+  await userEvent.type(screen.getByLabelText('WhatsApp'), '11900000001');
   await userEvent.tab();
   expect(await screen.findByText('R. Eu••• Lara, 2••, Jardim Azul')).toBeInTheDocument();
   await userEvent.click(screen.getByRole('radio', { name: /Entregar no mesmo endereço/ }));
@@ -120,7 +120,7 @@ it('CEP não encontrado ou serviço fora do ar oferece combinar pelo WhatsApp', 
   apiFalsa({
     'GET /loja/cardapio': () => [
       200,
-      { ...CARDAPIO, whatsapp_url: 'https://wa.me/5511912345678?text=Ol%C3%A1' },
+      { ...CARDAPIO, whatsapp_url: 'https://wa.me/5511900000005?text=Ol%C3%A1' },
     ],
     'GET /loja/cep/99999999': () => [
       422,
@@ -138,7 +138,7 @@ it('CEP não encontrado ou serviço fora do ar oferece combinar pelo WhatsApp', 
   expect(await screen.findByText(/Não achamos esse CEP/)).toBeInTheDocument();
   const link = screen.getByRole('link', { name: /Combinar pelo WhatsApp/ });
   const texto = new URL(link.getAttribute('href')!).searchParams.get('text')!;
-  expect(link.getAttribute('href')).toMatch(/^https:\/\/wa\.me\/5511912345678/);
+  expect(link.getAttribute('href')).toMatch(/^https:\/\/wa\.me\/5511900000005/);
   expect(texto).toContain('99999-999');
   expect(texto).toContain('Bolo de Pote Red Velvet');
   await userEvent.clear(screen.getByLabelText('CEP'));
@@ -201,7 +201,7 @@ async function agendarDoce(chamadas: { url: string; corpo?: unknown }[], indice:
   await userEvent.click(screen.getByRole('button', { name: /Ver pedido/ }));
   await userEvent.click(screen.getByRole('radio', { name: /Retirar na loja/ }));
   await userEvent.type(screen.getByLabelText('Seu nome'), 'Ana Paula');
-  await userEvent.type(screen.getByLabelText('WhatsApp'), '11999991234');
+  await userEvent.type(screen.getByLabelText('WhatsApp'), '11900000001');
   expect(screen.getByRole('radio', { name: /Agora/ })).toBeChecked();
   await userEvent.click(screen.getByRole('radio', { name: 'Agendar dia e hora' }));
   const quando = screen.getByLabelText('Escolha quando receber');
@@ -263,7 +263,7 @@ it('loja fechada com pronta entrega: agenda hoje a partir da abertura', async ()
   await userEvent.click(screen.getByRole('button', { name: /Ver pedido/ }));
   await userEvent.click(screen.getByRole('radio', { name: /Retirar na loja/ }));
   await userEvent.type(screen.getByLabelText('Seu nome'), 'Ana Paula');
-  await userEvent.type(screen.getByLabelText('WhatsApp'), '11999991234');
+  await userEvent.type(screen.getByLabelText('WhatsApp'), '11900000001');
   expect(screen.queryByRole('radio', { name: /Agora/ })).not.toBeInTheDocument();
   const quando = screen.getByLabelText('Escolha quando receber');
   const opcoes = within(quando).getAllByRole('option');
@@ -279,7 +279,7 @@ it('loja fechada com pronta entrega: agenda hoje a partir da abertura', async ()
 });
 
 it('botão para falar com a loja no WhatsApp, no cardápio e no carrinho', async () => {
-  const url = 'https://wa.me/5511912345678?text=Ol%C3%A1';
+  const url = 'https://wa.me/5511900000005?text=Ol%C3%A1';
   apiFalsa({ 'GET /loja/cardapio': () => [200, { ...CARDAPIO, whatsapp_url: url }] });
   render(<Loja />);
   const botao = await screen.findByRole('link', { name: /Falar com a loja no WhatsApp/ });
@@ -325,7 +325,7 @@ it('CEP mostra a rua antes do número, e o pedido leva a observação', async ()
   await adicionarDoce(1);
   await userEvent.click(screen.getByRole('button', { name: /Ver pedido/ }));
   await userEvent.type(screen.getByLabelText('Seu nome'), 'Ana Paula');
-  await userEvent.type(screen.getByLabelText('WhatsApp'), '11999991234');
+  await userEvent.type(screen.getByLabelText('WhatsApp'), '11900000001');
   expect(screen.queryByLabelText('Número')).not.toBeInTheDocument();
   await userEvent.type(screen.getByLabelText('CEP'), '12345-678');
   expect(await screen.findByText('R. das Acácias')).toBeInTheDocument();

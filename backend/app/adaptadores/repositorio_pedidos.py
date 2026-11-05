@@ -12,7 +12,12 @@ from app.dominio.cliente import Anterior, chave
 from app.dominio.estoque import Estado, Movimento, Tipo
 from app.dominio.horario import Horario
 from app.dominio.pedido import ItemCatalogo, PedidoMontado
-from app.regras.config import TEMPO_ENTREGA_MIN, TEMPO_PREPARO_PADRAO_MIN
+from app.regras.config import (
+    PREPARO_RETIRADA_MIN,
+    PREVISAO_PRONTA_MIN,
+    TEMPO_ENTREGA_MIN,
+    TEMPO_PREPARO_PADRAO_MIN,
+)
 
 
 @dataclass(frozen=True)
@@ -46,6 +51,15 @@ def configuracao(conn: Connection) -> Configuracao:
         r.expiracao_pagamento_min,
         r.tempo_preparo_min,
     )
+
+
+def a_partir_de(p, agora: datetime) -> datetime:
+    """Quando o pedido recém-pago pode sair: encomenda mantém a data; o resto, agora + preparo."""
+    if p.tipo_entrega == "encomenda":
+        return p.entrega_a_partir_de
+    minutos = PREPARO_RETIRADA_MIN if p.recebimento == "retirada" else PREVISAO_PRONTA_MIN
+    # Pronta entrega agendada: pago antes do horário escolhido, o horário fica.
+    return max(agora + timedelta(minutes=minutos), p.entrega_a_partir_de or agora)
 
 
 def catalogo(conn: Connection) -> dict[str, ItemCatalogo]:
@@ -173,6 +187,38 @@ def liberar_expirados(conn: Connection, agora: datetime) -> None:
             ),
             {"id": p.id},
         )
+    expirar_links_de_venda(conn, agora)
+
+
+def expirar_links_de_venda(conn: Connection, agora: datetime) -> None:
+    """Venda do painel cujo link venceu sem pagamento é cancelada, o estoque que o lançamento
+    baixou volta à pronta entrega e o link fica "expirado"."""
+    vencidas = conn.execute(
+        text(
+            "SELECT p.id, p.numero, l.valido_ate FROM doce.pedido p"
+            " JOIN LATERAL (SELECT valido_ate FROM doce.link_pagamento WHERE pedido_id = p.id"
+            " ORDER BY criado_em DESC, id DESC LIMIT 1) l ON true"
+            " WHERE p.pagamento_link = 'aguardando' AND p.estado <> 'cancelado'"
+            " AND l.valido_ate <= :agora ORDER BY l.valido_ate FOR UPDATE OF p SKIP LOCKED"
+        ),
+        {"agora": agora},
+    ).all()
+    for v in vencidas:
+        devolver_ao_estoque(
+            conn,
+            str(v.id),
+            v.numero,
+            "app",
+            v.valido_ate,
+            motivo=f"link da venda nº {v.numero} expirou sem pagamento",
+        )
+        conn.execute(
+            text(
+                "UPDATE doce.pedido SET estado = 'cancelado', cancelado_em = :ate,"
+                " pagamento_link = 'expirado' WHERE id = :id"
+            ),
+            {"ate": v.valido_ate, "id": v.id},
+        )
 
 
 def anteriores(conn: Connection, telefone: str, nome: str) -> list[Anterior]:
@@ -266,7 +312,9 @@ def baixar_venda(conn: Connection, pedido_id: str, de: Estado, autor: str, agora
         )
 
 
-def devolver_ao_estoque(conn: Connection, pedido_id: str, numero: int, autor: str, agora) -> None:
+def devolver_ao_estoque(
+    conn: Connection, pedido_id: str, numero: int, autor: str, agora, motivo: str | None = None
+) -> None:
     for variante, qtd in itens_do_pedido(conn, pedido_id):
         registrar_movimento(
             conn,
@@ -279,9 +327,36 @@ def devolver_ao_estoque(conn: Connection, pedido_id: str, numero: int, autor: st
                 pedido_id,  # identifica a devolução de cancelamento nos resumos
                 agora,
                 autor,
-                motivo=f"cancelamento do pedido nº {numero}",
+                motivo=motivo or f"cancelamento do pedido nº {numero}",
             ),
         )
+
+
+def lancar_venda_balcao(
+    conn: Connection, itens: list[tuple[str, int, int]], autor: str, agora: datetime
+) -> tuple[str, int, int]:
+    """Venda feita fora do app (balcão, WhatsApp, Instagram): nasce paga, a baixa sai da
+    pronta entrega. `itens` é (variante, quantidade, preço unitário em centavos). Quem chama
+    abre a transação: se faltar saldo, `FaltaEstoque` desfaz o pedido junto."""
+    total = sum(q * preco for _, q, preco in itens)
+    linha = conn.execute(
+        text(
+            "INSERT INTO doce.pedido (canal, subtotal_centavos, total_centavos, forma_pagamento,"
+            " estado, criado_em, pago_em, confirmado_por) VALUES ('balcao', :t, :t, 'externo',"
+            " 'pago', :agora, :agora, :op) RETURNING id, numero"
+        ),
+        {"t": total, "agora": agora, "op": autor},
+    ).one()
+    for variante, qtd, preco in itens:
+        conn.execute(
+            text(
+                "INSERT INTO doce.item_pedido (pedido_id, variante_id, quantidade,"
+                " preco_unitario_centavos, total_centavos) VALUES (:p, :v, :q, :preco, :t)"
+            ),
+            {"p": linha.id, "v": variante, "q": qtd, "preco": preco, "t": qtd * preco},
+        )
+    baixar_venda(conn, str(linha.id), Estado.PRONTA, autor, agora)
+    return str(linha.id), linha.numero, total
 
 
 def liberar_separacao(conn: Connection, pedido_id: str, autor: str, agora) -> None:

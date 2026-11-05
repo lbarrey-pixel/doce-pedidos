@@ -475,7 +475,7 @@ export function Checkout({
         </p>
       )}
       <button className="botao" type="submit" disabled={!pode || enviando}>
-        {enviando ? 'Enviando…' : 'Fazer pedido e pagar com Pix'}
+        {enviando ? 'Enviando…' : 'Fazer pedido e pagar'}
       </button>
     </form>
   );

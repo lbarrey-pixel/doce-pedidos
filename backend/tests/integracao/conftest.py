@@ -72,3 +72,4 @@ def engine(urls):
 
 
 from tests.integracao.apoio import mundo, relogio  # noqa: E402, F401  (fixtures compartilhadas)
+from tests.integracao.apoio_pagamento import gateway, mundo_gateway  # noqa: E402, F401

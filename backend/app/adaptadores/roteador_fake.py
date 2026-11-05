@@ -16,7 +16,7 @@ class RoteadorFake:
         self.distancias = distancias or {
             "12345678": 5000,
             "12000001": 2000,
-            "13000013": 13000,
+            "99999999": 13000,
         }
 
     def endereco_do_cep(self, cep: str) -> Endereco | None:

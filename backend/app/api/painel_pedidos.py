@@ -4,16 +4,19 @@ A expiração é preguiçosa (ADR 0005): toda rota libera antes os Pedidos venci
 """
 
 import json
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
+from app.adaptadores import repositorio_pagamentos as pagamentos
 from app.adaptadores import repositorio_pedidos as pedidos
 from app.api.auth import Operador, OperadorAtual
 from app.api.erros import ErroDeNegocio
+from app.api.pagamento_comum import conferir_e_aplicar
+from app.dominio.dinheiro import formatar
 from app.dominio.encomenda import SeparacaoInvalida, conferir_separacao, faltando
 from app.dominio.estoque import Estado, FaltaEstoque
 from app.dominio.horario import FUSO
@@ -31,8 +34,7 @@ PROXIMOS = {
 
 
 class Confirmacao(BaseModel):
-    valor_recebido_centavos: int = Field(ge=0)
-    aceitar_diferenca: bool = False
+    valor_recebido_centavos: int = Field(ge=0)  # campo a mais é ignorado
 
 
 class Separacao(BaseModel):
@@ -79,6 +81,13 @@ def _resumo(p, itens) -> dict:
         "total_centavos": p.total_centavos,
         "diferenca_pagamento_centavos": p.diferenca_pagamento_centavos,
         "devolvido_centavos": p.devolvido_centavos,
+        "forma_pagamento": p.forma_pagamento,
+        "parcelas": p.parcelas,
+        "valor_pago_centavos": p.valor_pago_centavos,
+        "pago_apos_expirar": p.pago_apos_expirar,
+        "pagamento_link": p.pagamento_link,
+        # Pedido do app com link de pagamento: confirma só pelo gateway (sem "Recebi R$").
+        "paga_pelo_link": bool(getattr(p, "paga_pelo_link", False)),
         "entregador": p.entregador,
         "saiu_em": p.saiu_em.astimezone(FUSO).isoformat() if p.saiu_em else None,
         "entregue_previsto_em": (
@@ -107,24 +116,16 @@ def listar(
         pedidos.marcar_entregues(c, agora)
         linhas = c.execute(
             text(
-                "SELECT * FROM doce.pedido WHERE criado_em >= :desde"
-                " AND (CAST(:estado AS text) IS NULL OR estado = :estado)"
-                " ORDER BY criado_em DESC LIMIT 200"
+                "SELECT p.*, EXISTS (SELECT 1 FROM doce.link_pagamento l"
+                " WHERE l.pedido_id = p.id) AND p.canal = 'app' AS paga_pelo_link"
+                " FROM doce.pedido p WHERE p.criado_em >= :desde"
+                " AND (CAST(:estado AS text) IS NULL OR p.estado = :estado)"
+                " ORDER BY p.criado_em DESC LIMIT 200"
             ),
             {"desde": agora - timedelta(days=max(1, min(dias, 90))), "estado": estado},
         ).all()
         itens = pedidos.itens_com_nome(c, [str(p.id) for p in linhas])
     return {"pedidos": [_resumo(p, itens.get(str(p.id), [])) for p in linhas]}
-
-
-def _a_partir_de(p, agora: datetime) -> datetime:
-    if p.tipo_entrega == "encomenda":
-        return p.entrega_a_partir_de
-    minutos = (
-        config.PREPARO_RETIRADA_MIN if p.recebimento == "retirada" else config.PREVISAO_PRONTA_MIN
-    )
-    # Pronta entrega agendada: pago antes do horário escolhido, o horário fica.
-    return max(agora + timedelta(minutes=minutos), p.entrega_a_partir_de or agora)
 
 
 @router.post("/{pedido_id}/confirmar-pagamento")
@@ -138,12 +139,22 @@ def confirmar(
         expirado = p.estado == "cancelado" and p.pago_em is None and p.cancelado_em == p.expira_em
         if p.estado != "aguardando_pagamento" and not expirado:
             raise ErroDeNegocio("transicao_invalida", "Esse Pedido não espera pagamento.")
-        try:
-            diferenca = confirmar_pagamento(
-                p.total_centavos,
-                dados.valor_recebido_centavos,
-                aceitar_diferenca=dados.aceitar_diferenca,
+        if (
+            p.canal == "app"
+            and c.execute(
+                text("SELECT 1 FROM doce.link_pagamento WHERE pedido_id = :id LIMIT 1"),
+                {"id": p.id},
+            ).first()
+        ):
+            # Confirmar na mão um pedido do link faria o aviso do mesmo pagamento virar
+            # "a estornar".
+            raise ErroDeNegocio(
+                "pagamento_pelo_gateway",
+                "Este pedido é pago pelo gateway. Use Conferir pagamento.",
+                409,
             )
+        try:
+            confirmar_pagamento(p.total_centavos, dados.valor_recebido_centavos)
         except ValorDivergente as e:
             raise ErroDeNegocio(
                 "valor_divergente",
@@ -164,18 +175,45 @@ def confirmar(
         c.execute(
             text(
                 "UPDATE doce.pedido SET estado = 'pago', pago_em = :agora, cancelado_em = NULL,"
-                " confirmado_por = :op, diferenca_pagamento_centavos = :dif,"
+                " confirmado_por = :op, diferenca_pagamento_centavos = 0,"
                 " entrega_a_partir_de = :a_partir WHERE id = :id"
             ),
             {
                 "agora": agora,
                 "op": operador.id,
-                "dif": diferenca,
-                "a_partir": _a_partir_de(p, agora),
+                "a_partir": pedidos.a_partir_de(p, agora),
                 "id": p.id,
             },
         )
-    return {"estado": "pago", "diferenca_pagamento_centavos": diferenca}
+    return {"estado": "pago", "diferenca_pagamento_centavos": 0}
+
+
+@router.post("/{pedido_id}/conferir-pagamento")
+def conferir(pedido_id: str, request: Request, _: Operador = OperadorAtual) -> dict:
+    """Confere no gateway com o último aviso do pedido. Vale também para pedido cancelado
+    ou expirado, que pode ter sido pago depois."""
+    with request.app.state.engine.connect() as c:
+        aviso = pagamentos.ultimo_aviso(c, pedido_id)
+        existe = (
+            c.execute(
+                text("SELECT 1 FROM doce.pedido WHERE id::text = :id"), {"id": pedido_id}
+            ).first()
+            is not None
+        )
+    if not existe:
+        raise ErroDeNegocio("nao_encontrado", "Pedido não encontrado.", 404)
+    if aviso is None:
+        raise ErroDeNegocio(
+            "sem_aviso_gateway",
+            "Sem aviso do gateway para este pedido: confira no painel do gateway.",
+            409,
+        )
+    resultado = conferir_e_aplicar(request, pedido_id, "painel", *aviso)
+    with request.app.state.engine.connect() as c:
+        estado = c.execute(
+            text("SELECT estado FROM doce.pedido WHERE id::text = :id"), {"id": pedido_id}
+        ).scalar_one()
+    return {"estado": estado, "resultado": resultado.value}
 
 
 @router.post("/{pedido_id}/estado")
@@ -188,7 +226,13 @@ def mudar_estado(
         p = _pedido(c, pedido_id)
         if dados.estado not in PROXIMOS.get(p.estado, set()):
             raise ErroDeNegocio("transicao_invalida", "Esse passo não vale para este Pedido.")
-        if p.tipo_entrega == "encomenda":
+        if p.canal == "balcao":
+            if dados.estado == "cancelado":
+                # A venda lançada baixou a pronta entrega; cancelada, volta. Venda já cancelada
+                # (inclusive por link expirado) cai na transição inválida acima: o estoque
+                # nunca volta duas vezes.
+                pedidos.devolver_ao_estoque(c, pedido_id, p.numero, operador.id, agora)
+        elif p.tipo_entrega == "encomenda":
             _encomenda_muda_de_estado(c, p, dados.estado, operador.id, agora)
         elif dados.estado == "cancelado" and p.tipo_entrega == "pronta_entrega":
             if p.estado == "aguardando_pagamento":
@@ -208,6 +252,7 @@ def mudar_estado(
             text(
                 "UPDATE doce.pedido SET estado = :e,"
                 " cancelado_em = CASE WHEN :e = 'cancelado' THEN :agora ELSE cancelado_em END,"
+                " cancelado_por = CASE WHEN :e = 'cancelado' THEN :op ELSE cancelado_por END,"
                 " saiu_em = CASE WHEN :saiu THEN :agora ELSE saiu_em END,"
                 " entregue_em = CASE WHEN :e = 'entregue' THEN :agora ELSE entregue_em END,"
                 " entregador = coalesce(CAST(:entregador AS jsonb), entregador),"
@@ -216,13 +261,22 @@ def mudar_estado(
             {
                 "e": final,
                 "agora": agora,
+                "op": operador.id,
                 "saiu": dados.estado == "saiu",
                 "entregador": json.dumps(entregador, ensure_ascii=False) if entregador else None,
                 "dev": dados.devolucao_centavos if dados.estado == "cancelado" else 0,
                 "id": p.id,
             },
         )
-    return {"estado": final}
+    resposta: dict = {"estado": final}
+    if dados.estado == "cancelado" and p.forma_pagamento in ("pix", "cartao"):
+        # Pago pelo gateway: o sistema não estorna sozinho; avisa o valor que entrou.
+        valor = p.valor_pago_centavos or p.total_centavos
+        resposta["estorno"] = {
+            "valor_centavos": valor,
+            "mensagem": f"Faça o estorno de {formatar(valor)} no painel do gateway.",
+        }
+    return resposta
 
 
 def _itens(c, pedido_id: str) -> dict[str, int]:

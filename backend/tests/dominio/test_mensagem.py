@@ -14,7 +14,7 @@ def test_texto_com_numero_itens_endereco_telefone_total_e_horario():
         numero=42,
         itens=[("Bolo de Pote Red Velvet · Individual", 2)],
         cliente_nome="Ana",
-        telefone="11999991234",
+        telefone="11900000001",
         endereco="R. das Acácias, 150 — Jardim Azul",
         total_centavos=5380,
         entrega_a_partir_de=datetime(2026, 11, 2, 15, 40, tzinfo=FUSO),
@@ -23,7 +23,7 @@ def test_texto_com_numero_itens_endereco_telefone_total_e_horario():
         "Pedido nº 42",
         "2× Bolo de Pote Red Velvet · Individual",
         "Ana",
-        "11999991234",
+        "11900000001",
         "R. das Acácias, 150",
         "R$ 53,80",
         "15h40",
@@ -45,9 +45,9 @@ def test_retirada_sem_endereco():
 
 
 def test_url_wa_me_codificada():
-    url = url_whatsapp("+55 (11) 98888-7777", "Olá & tchau")
+    url = url_whatsapp("+55 (11) 90000-0002", "Olá & tchau")
     partes = urlparse(url)
-    assert partes.netloc == "wa.me" and partes.path == "/5511988887777"
+    assert partes.netloc == "wa.me" and partes.path == "/5511900000002"
     assert parse_qs(partes.query)["text"] == ["Olá & tchau"]
 
 

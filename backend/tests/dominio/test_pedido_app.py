@@ -151,11 +151,12 @@ def test_variante_fora_do_cardapio_ou_quantidade_invalida():
 
 
 def test_confirmacao_do_pagamento():
-    assert confirmar_pagamento(5380, 5380, aceitar_diferenca=False) == 0
+    assert confirmar_pagamento(5380, 5380) is None
     with pytest.raises(ValorDivergente) as e:
-        confirmar_pagamento(5380, 5300, aceitar_diferenca=False)
+        confirmar_pagamento(5380, 5300)
     assert (e.value.esperado, e.value.recebido) == (5380, 5300)
-    assert confirmar_pagamento(5380, 5300, aceitar_diferenca=True) == -80
+    with pytest.raises(ValorDivergente):
+        confirmar_pagamento(5380, 5400)  # a mais também não confirma
 
 
 def test_expira_em_30_min_sem_confirmacao():

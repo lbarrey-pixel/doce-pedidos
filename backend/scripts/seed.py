@@ -21,7 +21,7 @@ CARDAPIO = Path(__file__).resolve().parents[1] / "dados" / "cardapio.csv"
 # Mesmo id usado por scripts/token_dev.py para gerar o JWT local.
 OPERADOR_DEV = uuid.UUID("00000000-0000-4000-8000-000000000001")
 PIX_CHAVE_EXEMPLO = "123e4567-e89b-12d3-a456-426614174000"
-WHATSAPP_EXEMPLO = "5511912345678"
+WHATSAPP_EXEMPLO = "5511900000002"
 
 ESTOQUE_INICIAL = {
     ("Brigadeiro de Pistache", "Caixa com 12"): ("producao", Estado.PRONTA, 6),

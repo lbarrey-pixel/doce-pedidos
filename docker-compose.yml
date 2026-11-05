@@ -32,6 +32,10 @@ services:
       # Sem Supabase: JWT HS256 com este segredo (token: scripts/token_dev.py).
       JWT_SECRET: segredo-local-so-para-desenvolvimento-32b
       ROTEADOR: fake
+      # Pagamento online simulado: o checkout leva à página /simulador do frontend.
+      GATEWAY: simulado
+      GATEWAY_AVISO_CODIGO: segredo-local-do-aviso
+      API_URL_PUBLICA: http://localhost:8000
       CORS_ORIGENS: http://localhost:5173
       DOCE_SEED: "1"
     ports:

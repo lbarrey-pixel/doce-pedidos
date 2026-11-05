@@ -4,15 +4,25 @@ import { irPara, ROTAS } from '../comum/rotas';
 import { chegouParaCriarSenha, supabase } from '../comum/supabase';
 import { Acesso } from './Acesso';
 import { CriarSenha } from './CriarSenha';
+import { Configuracao } from './Configuracao';
 import { Entrar } from './Entrar';
 import { Estoque } from './Estoque';
 import { Pedidos } from './Pedidos';
 import { Producao } from './Producao';
+import { Resumos } from './Resumos';
+import { Vendas } from './Vendas';
 
 // Desenvolvimento sem Supabase: um JWT gerado por `python -m scripts.token_dev`.
 const TOKEN_DEV: string | undefined = import.meta.env.VITE_DEV_TOKEN;
 
-const INTERNAS: string[] = [ROTAS.estoque, ROTAS.pedidos, ROTAS.producao];
+const INTERNAS: string[] = [
+  ROTAS.estoque,
+  ROTAS.pedidos,
+  ROTAS.producao,
+  ROTAS.vendas,
+  ROTAS.resumos,
+  ROTAS.configuracao,
+];
 
 // Para onde cada caminho leva, conforme haja login ou não.
 export function destino(caminho: string, logado: boolean): string {
@@ -49,6 +59,9 @@ export function Painel({ caminho }: { caminho: string }) {
     [ROTAS.estoque]: <Estoque token={token} />,
     [ROTAS.pedidos]: <Pedidos token={token} />,
     [ROTAS.producao]: <Producao token={token} />,
+    [ROTAS.vendas]: <Vendas token={token} />,
+    [ROTAS.resumos]: <Resumos token={token} />,
+    [ROTAS.configuracao]: <Configuracao token={token} />,
   };
   return <Acesso token={token}>{telas[alvo] ?? telas[ROTAS.pedidos]}</Acesso>;
 }

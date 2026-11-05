@@ -120,7 +120,7 @@ def test_bebida_da_encomenda_entra_como_entrada_e_separa(mundo, engine):
     loja, painel = mundo
     grande, coca = vid(engine, *GRANDE), vid(engine, *COCA)
     corpo = {
-        "cliente": {"nome": "Ana Paula", "telefone": "(11) 99999-1234"},
+        "cliente": {"nome": "Ana Paula", "telefone": "(11) 90000-0001"},
         "recebimento": "retirada",
         "itens": [
             {"variante_id": grande, "quantidade": 1},

@@ -20,7 +20,7 @@ from tests.integracao.test_api_base import CHAVE, EMISSOR, token
 CARDAPIO = Path(__file__).resolve().parents[2] / "dados" / "cardapio.csv"
 FUSO = ZoneInfo("America/Sao_Paulo")
 TARDE = datetime(2026, 11, 2, 15, 0, tzinfo=FUSO)
-ANA = {"nome": "Ana Paula Souza", "telefone": "(11) 99999-1234"}
+ANA = {"nome": "Ana Paula Souza", "telefone": "(11) 90000-0001"}
 
 
 class Relogio:
@@ -35,8 +35,8 @@ def relogio():
     return Relogio()
 
 
-@pytest.fixture
-def mundo(engine, urls, relogio):
+def montar_mundo(engine, relogio, **extras):
+    """Catálogo, operador (dono) e o app; `extras` vão para `criar_app` (ex.: gateway)."""
     with engine.begin() as c:
         repo.carregar_catalogo(c, ler_cardapio(CARDAPIO))
         oid = uuid.uuid4()
@@ -47,7 +47,7 @@ def mundo(engine, urls, relogio):
         c.execute(
             text(
                 "UPDATE doce.configuracao_loja SET pix_chave = '12345678000195',"
-                " whatsapp_negocio = '5511988887777'"
+                " whatsapp_negocio = '5511900000002'"
             )
         )
     verificador = VerificadorJWT(chave_publica=CHAVE.public_key(), emissor=EMISSOR)
@@ -56,10 +56,16 @@ def mundo(engine, urls, relogio):
         verificador=verificador,
         relogio=relogio,
         roteador=RoteadorFake(),
+        **extras,
     )
     loja = TestClient(app)
     painel = TestClient(app, headers={"Authorization": f"Bearer {token(oid)}"})
     return loja, painel
+
+
+@pytest.fixture
+def mundo(engine, urls, relogio):
+    return montar_mundo(engine, relogio)
 
 
 def vid(engine, produto="Cheesecake de Frutas Vermelhas", tamanho="Fatia"):

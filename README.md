@@ -1,9 +1,9 @@
 # doce-pedidos
 
-Aplicação de pedidos, estoque e cobrança por Pix para uma confeitaria artesanal ("Doce Ateliê",
-nome fictício). O cliente monta o pedido pelo celular, vê a taxa de entrega calculada pela
-distância de rua e paga com Pix copia e cola; quem opera a loja confirma o pagamento, acompanha o
-pedido até a entrega e controla o estoque num painel.
+Aplicação de pedidos, estoque e cobrança para uma confeitaria artesanal ("Doce Ateliê", nome
+fictício). O cliente monta o pedido pelo celular, vê a taxa de entrega calculada pela distância de
+rua e paga com cartão ou Pix numa página de checkout (ou com Pix copia e cola); quem opera a loja
+acompanha o pedido até a entrega, resolve pagamentos pendentes e controla o estoque num painel.
 
 > Versão de portfólio. O sistema roda em produção para um cliente; aqui marca e dados são
 > fictícios, e o código em produção é privado por contrato.
@@ -20,9 +20,12 @@ com expiração, taxa por faixa de distância e Pix com valor exato.
 
 - **Loja (sem conta):** cardápio por categoria, pronta entrega ou encomenda, entrega ou retirada,
   agendamento de horário, cotação de entrega por CEP, reconhecimento de quem já pediu (endereço
-  mascarado), Pix copia e cola com QR, acompanhamento do pedido e botão de WhatsApp da loja.
-- **Painel (com login):** pedidos novos em destaque, confirmação do Pix com conferência de valor,
-  mudança de estado (preparo, saída com entregador, entregue, cancelado com devolução), produção
+  mascarado), pagamento por link (cartão em até 12x e Pix) ou Pix copia e cola com QR,
+  acompanhamento do pedido e botão de WhatsApp da loja.
+- **Painel (com login):** pedidos novos em destaque, confirmação do Pix manual só com o valor
+  exato, conferência do pagamento no gateway, pagamentos a conferir e estornos pendentes, venda
+  lançada no painel com link para mandar por WhatsApp, resumos por forma de pagamento com taxa
+  estimada, tarifas configuráveis, mudança de estado (preparo, saída com entregador, entregue, cancelado com devolução), produção
   do dia e alerta de encomendas de amanhã, estoque por variante com lançamentos (produção, perda,
   ajuste, congelar, descongelar, transferir).
 
@@ -68,6 +71,25 @@ alembic upgrade head && python -m scripts.preparar_banco && python -m scripts.se
 uvicorn app.main:app_de_producao --factory --reload
 ```
 
+## Pagamento online
+
+O link de pagamento é criado por um gateway de checkout atrás de uma porta (ADR 0006). O servidor
+nunca confia no corpo do aviso: confere o pagamento no gateway antes de efetivar. Sem gateway, ou
+se ele falhar, o pedido cai no Pix copia e cola.
+
+| Variável (backend) | Para quê |
+| --- | --- |
+| `GATEWAY_API_URL`, `GATEWAY_API_KEY` | Ligam o gateway real (contrato em `docs/contracts/gateway-checkout.md`) |
+| `GATEWAY_AVISO_CODIGO` | Segredo do código `?c=` da URL do aviso (`POST /gateway/checkout/aviso`). Obrigatório com o gateway real e diferente da chave da API: sem ele a API não sobe |
+| `API_URL_PUBLICA` | URL pública da API; sem ela o link sai sem webhook |
+| `GATEWAY=simulado` | Simulador local, sem conta em gateway nenhum. A API se recusa a subir com ele quando `SUPABASE_URL` está definido (sinal de ambiente real) |
+
+Com `GATEWAY=simulado` (já ligado no `docker compose`) o checkout do cliente leva à página
+`/simulador/<pedido>` do frontend, que "paga" no cartão ou no Pix e volta para o pedido; a rota
+`/gateway/simulado/pagar` só existe nesse modo e nunca em ambiente real. O access log do uvicorn
+não registra o `?c=` do aviso. As tarifas (cartão 4,20%, Pix 0%) ficam em
+"Configuração" no painel.
+
 ## Testes
 
 ```bash
@@ -88,16 +110,17 @@ exercitam a API conectada como `doce_api`, o mesmo papel de produção.
 | Caminho | O que tem |
 | --- | --- |
 | `backend/app/dominio/` | Regras puras: dinheiro, estoque, pedido, entrega, horário, Pix, cliente, catálogo, encomenda |
-| `backend/app/portas/` | Contratos (`Protocol`) de roteador e pagamento |
-| `backend/app/adaptadores/` | Pix manual, roteador Google e falso, repositórios SQL |
+| `backend/app/portas/` | Contratos (`Protocol`) de roteador, Pix e gateway de pagamento |
+| `backend/app/adaptadores/` | Pix manual, gateway de checkout e simulado, roteador Google e falso, repositórios SQL |
 | `backend/app/api/` | Rotas da loja e do painel, autenticação, formato de erro |
 | `backend/migrations/` | Alembic aplicando SQL puro de `migrations/sql/` |
 | `backend/dados/cardapio.csv` | Cardápio fictício carregado pelo seed |
 | `backend/scripts/` | Seed, senha do papel da API, token de desenvolvimento |
 | `frontend/src/loja/` | App do cliente: cardápio, checkout, pagamento |
-| `frontend/src/painel/` | Painel: pedidos, produção, estoque, acesso |
+| `frontend/src/painel/` | Painel: pedidos, vendas, produção, estoque, resumos, configuração, acesso |
 | `frontend/src/comum/` | API, dinheiro, rotas, atualização do PWA |
 | `docs/adr/` | Decisões de arquitetura |
+| `docs/contracts/` | Contrato do gateway de checkout |
 
 ## Decisões
 
@@ -106,22 +129,28 @@ exercitam a API conectada como `doce_api`, o mesmo papel de produção.
 3. [Estoque como livro de movimentos](docs/adr/0003-estoque-como-livro-de-movimentos.md)
 4. [Pix copia e cola local](docs/adr/0004-pix-copia-e-cola-local.md)
 5. [Reserva e expiração sem agendador](docs/adr/0005-reserva-e-expiracao-sem-agendador.md)
+6. [Gateway de checkout atrás de uma porta](docs/adr/0006-gateway-de-checkout-atras-de-porta.md)
+7. [Confirmação manual só com o valor exato](docs/adr/0007-confirmacao-manual-sem-diferenca.md)
 
 Dinheiro é sempre inteiro em centavos, no banco, na API e na tela.
 
 ## Limitações conhecidas
 
-- Sem confirmação automática de Pix: o operador confere o extrato e confirma no painel.
-- Sem tela de configuração da loja nem de catálogo nesta versão: a configuração fica na tabela
-  `configuracao_loja` e o cardápio entra por CSV.
+- O Pix copia e cola continua manual: o operador confere o extrato e confirma no painel.
+- Estorno de pagamento online é feito no painel do gateway; o sistema só avisa e registra.
+- Fora desta versão: emissão fiscal, canais de venda além do app e do balcão, aviso sonoro de
+  pedido novo e histórico de alterações da configuração.
+- Configuração da loja só para as tarifas; o restante fica na tabela `configuracao_loja` e o
+  cardápio entra por CSV.
 - A marca e os ícones do PWA são provisórios (`frontend/scripts/gerar-icones.py`).
 
 ## English
 
 **doce-pedidos** is an ordering, stock and Pix-payment app for a small artisan bakery ("Doce
 Ateliê", a fictional name). Customers build an order on their phone, see a delivery fee computed
-from street distance and pay with a Pix copy-and-paste code; staff confirm the payment, follow
-the order to delivery and manage stock in a back-office panel.
+from street distance and pay by card or Pix on a hosted checkout page (or with a Pix
+copy-and-paste code); staff follow the order to delivery, resolve pending payments and manage
+stock in a back-office panel.
 
 > Portfolio version. The system runs in production for a client; brand and data are fictional
 > here, and the production code is private by contract.
@@ -133,10 +162,19 @@ the order to delivery and manage stock in a back-office panel.
   hours, Pix BR Code) behind `Protocol` ports; stock as an immutable movement ledger with a
   materialised balance locked per row; reservations that expire lazily on read (no scheduler);
   fine-grained database grants (`doce_api` can only insert/read the ledger).
+- **Online payment:** a checkout gateway behind a `GatewayDePagamento` port (HTTP adapter plus a
+  local simulator, `GATEWAY=simulado`). The webhook is unsigned, so each link carries an HMAC
+  code and the server never trusts the body: it always re-checks the payment with the gateway
+  (pure `decidir` function, unique-NSU index and row lock for idempotency). Late payments,
+  wrong amounts and out-of-stock payments become pending items for the operator; refunds are
+  done in the gateway's own dashboard. Falls back to manual Pix when the gateway is absent or
+  down. Left out of this version: tax documents, extra sales channels, new-order sound and
+  config history.
 - **Run:** `docker compose up --build`, then `docker compose exec api python -m scripts.token_dev`,
   put the token in `frontend/.env.local` as `VITE_DEV_TOKEN`, and `npm ci && npm run dev` in
   `frontend/`. Production auth is Supabase Auth; locally a plain HS256 `JWT_SECRET` works.
 - **Test:** `pytest` in `backend/` (integration tests need `TEST_ADMIN_DATABASE_URL`) and
   `npx vitest run` in `frontend/`.
-- **Not included:** payment-provider webhooks, a store-configuration screen and a catalogue
-  admin; the menu is loaded from `backend/dados/cardapio.csv`.
+- **Not included:** tax documents, iFood/WhatsApp/Instagram sales channels, a new-order sound,
+  a configuration change history and a catalogue admin; the menu is loaded from
+  `backend/dados/cardapio.csv`.

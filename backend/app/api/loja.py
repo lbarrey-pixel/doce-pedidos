@@ -8,16 +8,18 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
+from app.adaptadores import repositorio_pagamentos as pagamentos
 from app.adaptadores import repositorio_pedidos as pedidos
 from app.adaptadores import repositorio_sql as repo
 from app.api.erros import ErroDeNegocio
+from app.api.pagamento_comum import conferir_e_aplicar, url_de_volta, url_do_aviso
 from app.dominio.cliente import endereco_reconhecido, mascarar
 from app.dominio.dinheiro import formatar
 from app.dominio.entrega import taxa_de_entrega
 from app.dominio.horario import abre_as, loja_aberta, primeira_encomenda, primeiro_agendamento
 from app.dominio.mensagem import mensagem_do_pedido, url_whatsapp
 from app.dominio.pedido import Escolha, Recusa, montar_pedido
-from app.portas.pagamento import PagamentoNaoConfigurado
+from app.portas.pagamento import GatewayIndisponivel, PagamentoNaoConfigurado
 from app.portas.roteador import Coordenadas
 
 router = APIRouter(prefix="/loja")
@@ -35,6 +37,7 @@ MENSAGENS = {
     "agendamento_horario": "Esse horário não está mais disponível. Escolha outro.",
 }
 MENSAGEM_FALAR_COM_A_LOJA = "Olá! Vim pelo app da Doce Ateliê e quero falar com a loja."
+MENSAGEM_ESTORNO = "Olá! Paguei o pedido nº {numero} no app da Doce Ateliê e preciso do estorno."
 COM_WHATSAPP = {"sob_consulta", "endereco_nao_encontrado"}
 
 
@@ -65,6 +68,13 @@ class NovoPedido(BaseModel):
     entrega_em: datetime | None = None
     # Detalhes da entrega: quem recebe, portaria, ponto de referência.
     observacao: str | None = Field(default=None, max_length=300)
+
+
+class VoltaDoGateway(BaseModel):
+    """Dados que o gateway põe na URL de volta ao app."""
+
+    transaction_nsu: str = Field(min_length=1, max_length=200)
+    slug: str = Field(min_length=1, max_length=200)
 
 
 class Reconhecer(BaseModel):
@@ -232,6 +242,36 @@ def reconhecer(dados: Reconhecer, request: Request) -> dict:
     return resposta
 
 
+def _cobrar(request: Request, c, cfg, pid: str, numero: int, montado, agora):
+    """Link no gateway; sem gateway ou com o gateway fora do ar, cai no Pix copia e cola.
+    Com o link criado não há copia e cola na tela."""
+    gateway = request.app.state.gateway
+    if gateway is not None:
+        try:
+            link = gateway.criar_link(
+                pid,
+                numero,
+                montado.total_centavos,
+                montado.expira_em,
+                url_de_volta(request, pid),
+                url_do_aviso(request, gateway, pid),
+            )
+            pagamentos.criar_link(
+                c, pid, link.url, montado.total_centavos, montado.expira_em, link.resposta, agora
+            )
+            return {"tipo": "link", "url": link.url}, None
+        except GatewayIndisponivel as e:
+            log.warning("gateway fora do ar, Pix copia e cola no lugar: %s", e)
+    try:
+        pagamento = request.app.state.pagamento(cfg.pix_chave, cfg.pix_nome, cfg.pix_cidade)
+        pix = pagamento.cobrar(numero, montado.total_centavos)
+    except PagamentoNaoConfigurado as e:  # desfaz o pedido e a separação
+        raise ErroDeNegocio(
+            "pix_nao_configurado", "A loja ainda não cadastrou a chave Pix.", 503
+        ) from e
+    return {"tipo": "pix_manual"}, pix
+
+
 @router.post("/pedidos", status_code=201)
 def criar(novo: NovoPedido, request: Request) -> dict:
     agora = request.app.state.relogio()
@@ -282,13 +322,7 @@ def criar(novo: NovoPedido, request: Request) -> dict:
         pid, numero = pedidos.criar_pedido_app(
             c, montado, novo.cliente.model_dump(), endereco, distancia, agora, observacao
         )
-        try:
-            pagamento = request.app.state.pagamento(cfg.pix_chave, cfg.pix_nome, cfg.pix_cidade)
-            pix = pagamento.cobrar(numero, montado.total_centavos)
-        except PagamentoNaoConfigurado as e:  # desfaz o Pedido e a separação
-            raise ErroDeNegocio(
-                "pix_nao_configurado", "A loja ainda não cadastrou a chave Pix.", 503
-            ) from e
+        forma, pix = _cobrar(request, c, cfg, pid, numero, montado, agora)
     texto = mensagem_do_pedido(
         numero=numero,
         itens=[(i.nome, i.quantidade) for i in montado.itens],
@@ -315,13 +349,13 @@ def criar(novo: NovoPedido, request: Request) -> dict:
         "total_centavos": montado.total_centavos,
         "entrega_a_partir_de": montado.entrega_a_partir_de.isoformat(),
         "expira_em": montado.expira_em.isoformat(),
-        "pix": {"copia_e_cola": pix.copia_e_cola},
+        "pagamento": forma,
+        "pix": {"copia_e_cola": pix.copia_e_cola} if pix else None,
         "whatsapp_url": url_whatsapp(cfg.whatsapp_negocio, texto) if cfg.whatsapp_negocio else None,
     }
 
 
-@router.get("/pedidos/{pedido_id}")
-def acompanhar(pedido_id: str, request: Request) -> dict:
+def _acompanhamento(request: Request, pedido_id: str) -> dict:
     agora = request.app.state.relogio()
     with request.app.state.engine.begin() as c:
         pedidos.liberar_expirados(c, agora)
@@ -329,12 +363,26 @@ def acompanhar(pedido_id: str, request: Request) -> dict:
         p = c.execute(
             text(
                 "SELECT numero, estado, total_centavos, entrega_a_partir_de, recebimento,"
-                " tipo_entrega FROM doce.pedido WHERE id::text = :id AND canal = 'app'"
+                " tipo_entrega, forma_pagamento, pago_em, expira_em FROM doce.pedido"
+                " WHERE id::text = :id AND canal = 'app'"
             ),
             {"id": pedido_id},
         ).one_or_none()
-    if p is None:
-        raise ErroDeNegocio("nao_encontrado", "Pedido não encontrado.", 404)
+        if p is None:
+            raise ErroDeNegocio("nao_encontrado", "Pedido não encontrado.", 404)
+        aguarda = p.estado == "aguardando_pagamento"
+        link = pagamentos.link_do_pedido(c, pedido_id) if aguarda else None
+        estornar = pagamentos.a_estornar(c, pedido_id)
+    if link is not None:
+        pagamento, pix = {"tipo": "link", "url": link.url}, None
+    elif aguarda and cfg.pix_chave:
+        copia = request.app.state.pagamento(cfg.pix_chave, cfg.pix_nome, cfg.pix_cidade).cobrar(
+            p.numero, p.total_centavos
+        )
+        pagamento, pix = {"tipo": "pix_manual"}, {"copia_e_cola": copia.copia_e_cola}
+    else:
+        pagamento, pix = None, None
+    texto = MENSAGEM_ESTORNO.format(numero=p.numero) if estornar else MENSAGEM_FALAR_COM_A_LOJA
     return {
         "numero": p.numero,
         "estado": p.estado,
@@ -342,15 +390,23 @@ def acompanhar(pedido_id: str, request: Request) -> dict:
         "recebimento": p.recebimento,
         "tipo_entrega": p.tipo_entrega,
         "entrega_a_partir_de": p.entrega_a_partir_de.isoformat() if p.entrega_a_partir_de else None,
-        "pix": (
-            {
-                "copia_e_cola": request.app.state.pagamento(
-                    cfg.pix_chave, cfg.pix_nome, cfg.pix_cidade
-                )
-                .cobrar(p.numero, p.total_centavos)
-                .copia_e_cola
-            }
-            if p.estado == "aguardando_pagamento" and cfg.pix_chave
-            else None
-        ),
+        "forma_pagamento": p.forma_pagamento if p.pago_em else None,
+        "expira_em": p.expira_em.isoformat() if p.expira_em else None,
+        "a_estornar": estornar,
+        "pagamento": pagamento,
+        "pix": pix,
+        "whatsapp_url": url_whatsapp(cfg.whatsapp_negocio, texto) if cfg.whatsapp_negocio else None,
     }
+
+
+@router.get("/pedidos/{pedido_id}")
+def acompanhar(pedido_id: str, request: Request) -> dict:
+    return _acompanhamento(request, pedido_id)
+
+
+@router.post("/pedidos/{pedido_id}/conferir")
+def conferir(pedido_id: str, volta: VoltaDoGateway, request: Request) -> dict:
+    """O cliente voltou do gateway: confere o pagamento e devolve o estado do pedido.
+    Só a conferência confirma; o que veio na URL não prova nada."""
+    conferir_e_aplicar(request, pedido_id, "volta", volta.transaction_nsu, volta.slug, so_app=True)
+    return _acompanhamento(request, pedido_id)

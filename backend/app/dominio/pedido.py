@@ -175,11 +175,10 @@ def montar_pedido(
     )
 
 
-def confirmar_pagamento(esperado: int, recebido: int, *, aceitar_diferenca: bool) -> int:
-    """Diferença registrada (recebido − esperado). Sem aceitar, valor diferente é recusado."""
-    if recebido != esperado and not aceitar_diferenca:
+def confirmar_pagamento(esperado: int, recebido: int) -> None:
+    """Só valor igual ao do pedido confirma; qualquer outro é recusado (ADR 0007)."""
+    if recebido != esperado:
         raise ValorDivergente(esperado, recebido)
-    return recebido - esperado
 
 
 def expirou(estado: str, expira_em: datetime | None, agora: datetime) -> bool:

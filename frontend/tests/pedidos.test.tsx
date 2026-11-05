@@ -14,7 +14,7 @@ const BASE = {
   canal: 'app',
   recebimento: 'entrega',
   tipo_entrega: 'pronta_entrega',
-  cliente: { nome: 'Ana Paula', telefone: '11999991234' },
+  cliente: { nome: 'Ana Paula', telefone: '11900000001' },
   endereco: { logradouro: 'R. das Acácias', numero: '220', bairro: 'Jardim Azul' },
   itens: [{ nome: 'Bolo de Pote Red Velvet · Individual', quantidade: 2 }],
   subtotal_centavos: 3980,
@@ -41,7 +41,7 @@ it('destaca o novo e confirma o Pix com o valor esperado', async () => {
   });
   render(<Pedidos token="t" />);
   const novo = await screen.findByRole('article', { name: /Pedido nº 42/ });
-  expect(within(novo).getByText('Esperando o Pix')).toBeInTheDocument();
+  expect(within(novo).getByText('Esperando o pagamento')).toBeInTheDocument();
   expect(within(novo).getByText(/R\. das Acácias, 220/)).toBeInTheDocument();
   await userEvent.click(within(novo).getByRole('button', { name: 'Recebi R$ 53,80' }));
   expect(chamadas.find((c) => c.metodo === 'POST')?.corpo).toEqual({
@@ -49,20 +49,12 @@ it('destaca o novo e confirma o Pix com o valor esperado', async () => {
   });
 });
 
-it('valor diferente pede confirmação explícita da diferença', async () => {
-  const chamadas = apiFalsa({
-    'GET /painel/pedidos': () => [200, LISTA],
-    'POST /painel/pedidos/a/confirmar-pagamento': () => [200, { estado: 'pago' }],
-  });
+it('só confirma na mão com o valor do pedido: não há opção de outro valor', async () => {
+  apiFalsa({ 'GET /painel/pedidos': () => [200, LISTA] });
   render(<Pedidos token="t" />);
   const novo = await screen.findByRole('article', { name: /Pedido nº 42/ });
-  await userEvent.click(within(novo).getByRole('button', { name: 'Entrou outro valor' }));
-  await userEvent.type(within(novo).getByLabelText('Valor que entrou'), '53');
-  await userEvent.click(within(novo).getByRole('button', { name: /Confirmar com diferença/ }));
-  expect(chamadas.find((c) => c.metodo === 'POST')?.corpo).toEqual({
-    valor_recebido_centavos: 5300,
-    aceitar_diferenca: true,
-  });
+  expect(within(novo).getByRole('button', { name: 'Recebi R$ 53,80' })).toBeInTheDocument();
+  expect(within(novo).queryByRole('button', { name: /outro valor/ })).not.toBeInTheDocument();
 });
 
 it('avança o estado do pedido pago', async () => {
@@ -104,7 +96,7 @@ it('mostra quem levou e quando vira entregue', async () => {
     id: 'd',
     numero: 44,
     estado: 'saiu',
-    entregador: { nome: 'Carlos', telefone: '11999990000' },
+    entregador: { nome: 'Carlos', telefone: '11900000004' },
     entregue_previsto_em: '2026-11-02T18:30:00+00:00',
   };
   apiFalsa({ 'GET /painel/pedidos': () => [200, { pedidos: [saiu] }] });
