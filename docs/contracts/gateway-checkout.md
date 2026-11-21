@@ -1,14 +1,14 @@
-# Contrato do gateway de checkout
+# Checkout gateway contract
 
-O que o adaptador `app/adaptadores/gateway_checkout.py` espera do gateway. Os testes de contrato
-(`backend/tests/contrato/test_gateway_checkout.py`) fixam este formato com `respx`; trocar de
-fornecedor é escrever outro adaptador que cumpra a porta `GatewayDePagamento`.
+What the `app/adaptadores/gateway_checkout.py` adapter expects from the gateway. The contract
+tests (`backend/tests/contrato/test_gateway_checkout.py`) lock this format with `respx`; switching
+provider means writing another adapter that fulfils the `GatewayDePagamento` port.
 
-Autenticação: `Authorization: Bearer <GATEWAY_API_KEY>` em toda chamada. Tempo limite de 8 s.
-Qualquer falha (rede, tempo, status fora de 2xx, corpo que não é JSON objeto) vira
-`GatewayIndisponivel`, sem a chave nem o corpo na mensagem.
+Authentication: `Authorization: Bearer <GATEWAY_API_KEY>` on every call. Timeout of 8 s.
+Any failure (network, timeout, a status outside 2xx, a body that is not a JSON object) becomes
+`GatewayIndisponivel`, with neither the key nor the body in the message.
 
-## Criar link: `POST {GATEWAY_API_URL}/links`
+## Create link: `POST {GATEWAY_API_URL}/links`
 
 ```json
 {
@@ -28,44 +28,45 @@ Qualquer falha (rede, tempo, status fora de 2xx, corpo que não é JSON objeto) 
 }
 ```
 
-Resposta: objeto com `url` (ou `link`) começando em `https://`. Um item só com o total evita
-diferença de arredondamento. Nenhum dado pessoal do cliente é enviado.
+Response: an object with `url` (or `link`) starting with `https://`. A single item with the total
+avoids a rounding difference. No personal data of the customer is sent.
 
-- `redirect_url` vem de `CORS_ORIGENS`: usa a origem da requisição se ela estiver na lista e,
-  senão, a primeira da lista. Sem `CORS_ORIGENS`, o campo é omitido.
-- `webhook` vem de `API_URL_PUBLICA`: sem ela, o campo é omitido e o link sai sem aviso (o
-  cliente ainda confirma pela volta e o operador por "Conferir pagamento").
+- `redirect_url` comes from `CORS_ORIGENS`: it uses the request's origin if that origin is on the
+  list and, otherwise, the first on the list. Without `CORS_ORIGENS`, the field is omitted.
+- `webhook` comes from `API_URL_PUBLICA`: without it, the field is omitted and the link goes out
+  without a notice (the customer still confirms on return and the operator through "Conferir
+  pagamento" (Check payment)).
 
-## Conferir pagamento: `POST {GATEWAY_API_URL}/payments/check`
+## Check payment: `POST {GATEWAY_API_URL}/payments/check`
 
 ```json
 { "order_nsu": "<id do pedido>", "transaction_nsu": "<nsu>", "slug": "<slug>" }
 ```
 
-Resposta:
+Response:
 
-| Campo | Tipo | Significado |
+| Field | Type | Meaning |
 | --- | --- | --- |
-| `success` | bool | a consulta achou a transação |
-| `paid` | bool | a transação foi paga |
-| `amount` | inteiro, centavos | valor cobrado pelo link |
-| `paid_amount` | inteiro, centavos | valor pago (com juros do parcelamento, se houver) |
-| `installments` | inteiro | parcelas (mínimo 1) |
-| `capture_method` | texto | `pix` ou `credit_card` |
+| `success` | bool | the query found the transaction |
+| `paid` | bool | the transaction was paid |
+| `amount` | integer, cents | amount charged by the link |
+| `paid_amount` | integer, cents | amount paid (with installment interest, if any) |
+| `installments` | integer | installments (minimum 1) |
+| `capture_method` | text | `pix` or `credit_card` |
 
-`success` ou `paid` falsos são resposta válida (não pago). Valor que não seja inteiro vira 0 e
-nunca confirma nada.
+When `success` or `paid` is false, that is a valid response (not paid). A value that is not an
+integer becomes 0 and never confirms anything.
 
-## Aviso: `POST /api/v1/gateway/checkout/aviso?c=<codigo>` (nesta API)
+## Notice: `POST /api/v1/gateway/checkout/aviso?c=<codigo>` (on this API)
 
-Corpo do gateway, usado só para ler `order_nsu`, `transaction_nsu` e `invoice_slug`. O código `c` é
-`HMAC-SHA256(GATEWAY_AVISO_CODIGO, id do pedido)` cortado em 32 caracteres. Responde 200 também
-para aviso repetido, não confirmado ou de pedido que não existe (este só fica registrado), para o
-gateway não reenviar sem fim; corpo fora do formato ou código errado recebem 400, sem consultar o
-gateway.
+The body from the gateway is used only to read `order_nsu`, `transaction_nsu` and
+`invoice_slug`. The `c` code is `HMAC-SHA256(GATEWAY_AVISO_CODIGO, id do pedido)` truncated to
+32 characters. The route also responds 200 for a repeated notice, an unconfirmed one, or one for
+an order that does not exist (this last one is only recorded), so the gateway does not resend
+endlessly; a body outside the format or a wrong code receives 400, without querying the gateway.
 
-## Volta do cliente
+## Customer return
 
-O cliente volta para `redirect_url` com `?transaction_nsu=...&slug=...`. A loja chama
-`POST /api/v1/loja/pedidos/{id}/conferir` com esses dois valores, que passa pela mesma
-conferência do aviso.
+The customer returns to `redirect_url` with `?transaction_nsu=...&slug=...`. The store calls
+`POST /api/v1/loja/pedidos/{id}/conferir` with those two values, which goes through the same
+check as the notice.

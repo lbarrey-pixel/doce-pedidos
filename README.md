@@ -1,47 +1,48 @@
 # doce-pedidos
 
-Aplicação de pedidos, estoque e cobrança para uma confeitaria artesanal ("Doce Ateliê", nome
-fictício). O cliente monta o pedido pelo celular, vê a taxa de entrega calculada pela distância de
-rua e paga com cartão ou Pix numa página de checkout (ou com Pix copia e cola); quem opera a loja
-acompanha o pedido até a entrega, resolve pagamentos pendentes e controla o estoque num painel.
+Ordering, stock and billing application for an artisan confectionery ("Doce Ateliê", a fictional
+name). The customer builds the order on their phone, sees the delivery fee calculated from street
+distance and pays by card or Pix (Brazil's instant payment system) on a checkout page (or with a
+Pix copy-and-paste code); whoever operates the store follows the order through to delivery,
+resolves pending payments and controls stock in a panel.
 
-> Versão de portfólio. O sistema roda em produção para um cliente; aqui marca e dados são
-> fictícios, e o código em produção é privado por contrato.
+> Portfolio version. This is a portfolio sample of a system running in production for a client;
+> brand and data here are fictional, and the full production code is private by contract.
 
-## Por que existe
+## Why it exists
 
-Uma confeitaria pequena vendia por mensagem e controlava estoque de cabeça. Os problemas eram
-concretos: vender o que já tinha acabado, perder o fio de quem pagou e quem não pagou, calcular
-taxa de entrega no olho e não saber o que produzir para as encomendas do dia seguinte. O projeto
-resolve isso com poucas regras bem testadas: estoque como livro de movimentos, reserva por pedido
-com expiração, taxa por faixa de distância e Pix com valor exato.
+A small confectionery sold through messages and kept stock from memory. The problems were
+concrete: selling what had already run out, losing track of who had paid and who had not,
+calculating the delivery fee by eye, and not knowing what to produce for the next day's
+pre-orders. The project solves this with a few well-tested rules: stock as a movement ledger, a
+reservation per order with expiry, a fee by distance band, and Pix for the exact amount.
 
-## O que faz
+## What it does
 
-- **Loja (sem conta):** cardápio por categoria, pronta entrega ou encomenda, entrega ou retirada,
-  agendamento de horário, cotação de entrega por CEP, reconhecimento de quem já pediu (endereço
-  mascarado), pagamento por link (cartão em até 12x e Pix) ou Pix copia e cola com QR,
-  acompanhamento do pedido e botão de WhatsApp da loja.
-- **Painel (com login):** pedidos novos em destaque, confirmação do Pix manual só com o valor
-  exato, conferência do pagamento no gateway, pagamentos a conferir e estornos pendentes, venda
-  lançada no painel com link para mandar por WhatsApp, resumos por forma de pagamento com taxa
-  estimada, tarifas configuráveis, mudança de estado (preparo, saída com entregador, entregue, cancelado com devolução), produção
-  do dia e alerta de encomendas de amanhã, estoque por variante com lançamentos (produção, perda,
-  ajuste, congelar, descongelar, transferir).
+- **Store (no account):** menu by category, ready now or pre-order, delivery or pickup,
+  scheduling a time, a delivery quote by CEP (Brazilian postal code), recognition of someone who
+  has ordered before (masked address), payment by link (card in up to 12 installments and Pix)
+  or Pix copy-and-paste with a QR code, order tracking and the store's WhatsApp button.
+- **Panel (with login):** new orders highlighted, manual Pix confirmation only for the exact
+  amount, a payment check on the gateway, payments to check and pending refunds, a sale entered
+  in the panel with a link to send by WhatsApp, summaries by payment method with an estimated
+  fee, configurable tariffs, state changes (preparation, out with a courier, delivered, cancelled
+  with a return), the day's production and an alert for tomorrow's pre-orders, stock by variant
+  with entries (production, loss, adjustment, freeze, thaw, transfer).
 
 ## Stack
 
-| Camada | Tecnologia |
+| Layer | Technology |
 | --- | --- |
 | Backend | Python 3.12, FastAPI, SQLAlchemy Core (`text()`), Alembic, psycopg 3, httpx, PyJWT |
-| Banco | PostgreSQL 16, schema `doce`, papéis `doce_api` (permissões finas) e `doce_backup` (só leitura) |
-| Frontend | React 18, Vite, TypeScript estrito, PWA (`vite-plugin-pwa`) |
-| Testes | pytest (domínio, contrato com `respx`, integração com Postgres real), Vitest + Testing Library |
-| CI | GitHub Actions: ruff, pytest com Postgres, tsc, eslint, prettier, vitest, build |
+| Database | PostgreSQL 16, schema `doce`, roles `doce_api` (fine-grained permissions) and `doce_backup` (read-only) |
+| Frontend | React 18, Vite, strict TypeScript, PWA (`vite-plugin-pwa`) |
+| Tests | pytest (domain, contract with `respx`, integration with real Postgres), Vitest + Testing Library |
+| CI | GitHub Actions: ruff, pytest with Postgres, tsc, eslint, prettier, vitest, build |
 
-## Como rodar
+## How to run
 
-Com Docker (Postgres + API, já com migrations e dados de demonstração):
+With Docker (Postgres + API, already with migrations and demo data):
 
 ```bash
 docker compose up --build            # API em http://localhost:8000
@@ -53,13 +54,14 @@ echo "VITE_DEV_TOKEN=<cole o token aqui>" > .env.local
 npm run dev                          # loja em http://localhost:5173, painel em /painel
 ```
 
-A loja funciona sem token. O painel usa o token no lugar do login (**painel sem Supabase**);
-em produção a autenticação é o Supabase Auth: defina `SUPABASE_URL` no backend e
-`VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` no frontend. O mapa local usa um
-roteador falso (`ROTEADOR=fake`: o CEP `12345-678` fica a 5 km); sem isso usa BrasilAPI e Google
-Maps (`GOOGLE_MAPS_API_KEY`). Detalhes em `backend/.env.example` e `frontend/.env.example`.
+The store works without a token. The panel uses the token in place of login (**panel without
+Supabase**); in production, authentication is Supabase Auth: set `SUPABASE_URL` on the backend
+and `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` on the frontend. The local map uses a
+fake router (`ROTEADOR=fake`: the CEP `12345-678` is 5 km away); without that it uses BrasilAPI
+and Google Maps (`GOOGLE_MAPS_API_KEY`). Details are in `backend/.env.example` and
+`frontend/.env.example`.
 
-Sem Docker, com um Postgres 16 qualquer:
+Without Docker, with any Postgres 16:
 
 ```bash
 cd backend
@@ -71,26 +73,26 @@ alembic upgrade head && python -m scripts.preparar_banco && python -m scripts.se
 uvicorn app.main:app_de_producao --factory --reload
 ```
 
-## Pagamento online
+## Online payment
 
-O link de pagamento é criado por um gateway de checkout atrás de uma porta (ADR 0006). O servidor
-nunca confia no corpo do aviso: confere o pagamento no gateway antes de efetivar. Sem gateway, ou
-se ele falhar, o pedido cai no Pix copia e cola.
+The payment link is created by a checkout gateway behind a port (ADR 0006). The server never
+trusts the body of the notice: it checks the payment with the gateway before applying it. Without
+a gateway, or if it fails, the order falls back to Pix copy-and-paste.
 
-| Variável (backend) | Para quê |
+| Variable (backend) | Purpose |
 | --- | --- |
-| `GATEWAY_API_URL`, `GATEWAY_API_KEY` | Ligam o gateway real (contrato em `docs/contracts/gateway-checkout.md`) |
-| `GATEWAY_AVISO_CODIGO` | Segredo do código `?c=` da URL do aviso (`POST /gateway/checkout/aviso`). Obrigatório com o gateway real e diferente da chave da API: sem ele a API não sobe |
-| `API_URL_PUBLICA` | URL pública da API; sem ela o link sai sem webhook |
-| `GATEWAY=simulado` | Simulador local, sem conta em gateway nenhum. A API se recusa a subir com ele quando `SUPABASE_URL` está definido (sinal de ambiente real) |
+| `GATEWAY_API_URL`, `GATEWAY_API_KEY` | Turn on the real gateway (contract in `docs/contracts/gateway-checkout.md`) |
+| `GATEWAY_AVISO_CODIGO` | Secret for the `?c=` code on the notice URL (`POST /gateway/checkout/aviso`). Required with the real gateway and different from the API key: without it the API does not start |
+| `API_URL_PUBLICA` | Public URL of the API; without it the link goes out without a webhook |
+| `GATEWAY=simulado` | Local simulator, with no account at any gateway. The API refuses to start with it when `SUPABASE_URL` is set (a sign of a real environment) |
 
-Com `GATEWAY=simulado` (já ligado no `docker compose`) o checkout do cliente leva à página
-`/simulador/<pedido>` do frontend, que "paga" no cartão ou no Pix e volta para o pedido; a rota
-`/gateway/simulado/pagar` só existe nesse modo e nunca em ambiente real. O access log do uvicorn
-não registra o `?c=` do aviso. As tarifas (cartão 4,20%, Pix 0%) ficam em
-"Configuração" no painel.
+With `GATEWAY=simulado` (already on in `docker compose`) the customer's checkout goes to the
+frontend page `/simulador/<pedido>`, which "pays" by card or by Pix and returns to the order; the
+route `/gateway/simulado/pagar` exists only in this mode and never in a real environment. The
+uvicorn access log does not record the notice's `?c=`. The tariffs (card 4.20%, Pix 0%) are under
+"Configuração" (Settings) in the panel.
 
-## Testes
+## Tests
 
 ```bash
 cd backend
@@ -102,53 +104,54 @@ cd ../frontend
 npx tsc --noEmit && npx eslint . && npx prettier --check . && npx vitest run && npx vite build
 ```
 
-Os testes de integração criam um banco novo, rodam `alembic upgrade head` como dono do schema e
-exercitam a API conectada como `doce_api`, o mesmo papel de produção.
+The integration tests create a new database, run `alembic upgrade head` as the schema owner and
+exercise the API connected as `doce_api`, the same role as in production.
 
-## Estrutura
+## Structure
 
-| Caminho | O que tem |
+| Path | What it contains |
 | --- | --- |
-| `backend/app/dominio/` | Regras puras: dinheiro, estoque, pedido, entrega, horário, Pix, cliente, catálogo, encomenda |
-| `backend/app/portas/` | Contratos (`Protocol`) de roteador, Pix e gateway de pagamento |
-| `backend/app/adaptadores/` | Pix manual, gateway de checkout e simulado, roteador Google e falso, repositórios SQL |
-| `backend/app/api/` | Rotas da loja e do painel, autenticação, formato de erro |
-| `backend/migrations/` | Alembic aplicando SQL puro de `migrations/sql/` |
-| `backend/dados/cardapio.csv` | Cardápio fictício carregado pelo seed |
-| `backend/scripts/` | Seed, senha do papel da API, token de desenvolvimento |
-| `frontend/src/loja/` | App do cliente: cardápio, checkout, pagamento |
-| `frontend/src/painel/` | Painel: pedidos, vendas, produção, estoque, resumos, configuração, acesso |
-| `frontend/src/comum/` | API, dinheiro, rotas, atualização do PWA |
-| `docs/adr/` | Decisões de arquitetura |
-| `docs/contracts/` | Contrato do gateway de checkout |
+| `backend/app/dominio/` | Pure rules: money, stock, order, delivery, hours, Pix, customer, catalogue, pre-order |
+| `backend/app/portas/` | Contracts (`Protocol`) for the router, Pix and the payment gateway |
+| `backend/app/adaptadores/` | Manual Pix, the checkout gateway and the simulator, the Google router and the fake one, SQL repositories |
+| `backend/app/api/` | Store and panel routes, authentication, error format |
+| `backend/migrations/` | Alembic applying plain SQL from `migrations/sql/` |
+| `backend/dados/cardapio.csv` | Fictional menu loaded by the seed |
+| `backend/scripts/` | Seed, API-role password, development token |
+| `frontend/src/loja/` | Customer app: menu, checkout, payment |
+| `frontend/src/painel/` | Panel: orders, sales, production, stock, summaries, configuration, access |
+| `frontend/src/comum/` | API, money, routes, PWA update |
+| `docs/adr/` | Architecture decisions |
+| `docs/contracts/` | Checkout gateway contract |
 
-## Decisões
+## Decisions
 
-1. [Site instalável (PWA)](docs/adr/0001-site-instalavel.md)
-2. [Domínio puro e portas](docs/adr/0002-dominio-isolado-e-portas.md)
-3. [Estoque como livro de movimentos](docs/adr/0003-estoque-como-livro-de-movimentos.md)
-4. [Pix copia e cola local](docs/adr/0004-pix-copia-e-cola-local.md)
-5. [Reserva e expiração sem agendador](docs/adr/0005-reserva-e-expiracao-sem-agendador.md)
-6. [Gateway de checkout atrás de uma porta](docs/adr/0006-gateway-de-checkout-atras-de-porta.md)
-7. [Confirmação manual só com o valor exato](docs/adr/0007-confirmacao-manual-sem-diferenca.md)
+1. [Installable site (PWA)](docs/adr/0001-installable-site.md)
+2. [Pure domain and ports](docs/adr/0002-isolated-domain-and-ports.md)
+3. [Stock as a movement ledger](docs/adr/0003-stock-as-a-movement-ledger.md)
+4. [Local Pix copy-and-paste](docs/adr/0004-local-pix-copy-and-paste.md)
+5. [Reservation and expiry without a scheduler](docs/adr/0005-reservation-and-expiry-without-a-scheduler.md)
+6. [Checkout gateway behind a port](docs/adr/0006-checkout-gateway-behind-a-port.md)
+7. [Manual confirmation only with the exact amount](docs/adr/0007-manual-confirmation-without-a-difference.md)
 
-Dinheiro é sempre inteiro em centavos, no banco, na API e na tela.
+Money is always an integer in cents, in the database, in the API and on screen.
 
-## Limitações conhecidas
+## Known limitations
 
-- O Pix copia e cola continua manual: o operador confere o extrato e confirma no painel.
-- Estorno de pagamento online é feito no painel do gateway; o sistema só avisa e registra.
-- Fora desta versão: emissão fiscal, canais de venda além do app e do balcão, aviso sonoro de
-  pedido novo e histórico de alterações da configuração.
-- Configuração da loja só para as tarifas; o restante fica na tabela `configuracao_loja` e o
-  cardápio entra por CSV.
-- A marca e os ícones do PWA são provisórios (`frontend/scripts/gerar-icones.py`).
+- Pix copy-and-paste stays manual: the operator checks the statement and confirms in the panel.
+- A refund of an online payment is done in the gateway's panel; the system only notifies and
+  records.
+- Outside this version: tax-document issuance, sales channels beyond the app and the counter, a
+  sound alert for a new order, and a history of configuration changes.
+- Store configuration covers only the tariffs; the rest stays in the `configuracao_loja` table
+  and the menu comes in by CSV.
+- The brand and the PWA icons are provisional (`frontend/scripts/gerar-icones.py`).
 
 ## English
 
-**doce-pedidos** is an ordering, stock and Pix-payment app for a small artisan bakery ("Doce
-Ateliê", a fictional name). Customers build an order on their phone, see a delivery fee computed
-from street distance and pay by card or Pix on a hosted checkout page (or with a Pix
+**doce-pedidos** is an ordering, stock and Pix-payment app for a small artisan confectionery
+("Doce Ateliê", a fictional name). Customers build an order on their phone, see a delivery fee
+computed from street distance and pay by card or Pix on a hosted checkout page (or with a Pix
 copy-and-paste code); staff follow the order to delivery, resolve pending payments and manage
 stock in a back-office panel.
 
